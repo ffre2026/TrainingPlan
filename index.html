@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Frank's Training Hub</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+  html, body { margin: 0; padding: 0; background: #15171A; }
+  * { box-sizing: border-box; }
+  .hub-mono { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+  .hub-display { font-family: 'Space Grotesk', sans-serif; }
+  .hub-card { background: #1D2023; border: 1px solid #2A2E33; border-radius: 10px; }
+  .hub-tab { cursor: pointer; border: none; background: transparent; color: #8B8D91; font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.03em; padding: 8px 14px; border-radius: 999px; }
+  .hub-tab.active { background: linear-gradient(120deg, #4A6FA5, #E8A33D); color: #15171A; }
+  .hub-weektab { cursor: pointer; border: 1px solid #2A2E33; background: #1D2023; color: #8B8D91; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; padding: 8px 10px; border-radius: 8px; text-align: center; }
+  .hub-weektab.active { background: linear-gradient(120deg, #4A6FA5, #E8A33D); color: #15171A; border-color: transparent; }
+  .hub-weekgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; }
+  .hub-navbtn { cursor: pointer; display: flex; align-items: center; gap: 6px; background: #1D2023; border: 1px solid #2A2E33; color: #E8E6E1; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 8px; }
+  .hub-navbtn:hover { border-color: #4A6FA5; }
+  .hub-home-card { cursor: pointer; transition: border-color .15s ease, transform .15s ease; }
+  .hub-home-card:hover { border-color: #E8A33D; transform: translateY(-2px); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  @media (max-width: 640px) {
+    .hub-hero-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    .hub-monthly-grid { grid-template-columns: 1fr !important; }
+    .hub-weekgrid { grid-template-columns: repeat(4, 1fr); }
+    .hub-stagegrid { grid-template-columns: 1fr !important; }
+    .hub-home-grid { grid-template-columns: 1fr !important; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useMemo } = React;
+
+/* ============ TOKENS ============ */
+const ZONE_COLOR = { Rest: "#3A3D42", Z1: "#6B7280", Z2: "#4A6FA5", Z3: "#3F9C8B", Z4: "#E8A33D", Z5: "#E0692F", Z6: "#C6432C", Z7: "#9B2C5E", Race: "#9B2C5E" };
+const FTP = 260;
+const LAST_SYNCED = "Nov 5, 2026";
+const ICON = { bike: "\u{1F6B4}", flame: "\u{1F525}", timer: "\u23F1\uFE0F", zap: "\u26A1", sunrise: "\u{1F305}", gauge: "\u{1F3AF}", activity: "\u{1F4C8}", flag: "\u{1F3C1}", mountain: "\u26F0\uFE0F", trend: "\u{1F4C9}", refresh: "\u{1F504}", close: "\u2715", back: "\u2039", home: "\u{1F3E0}" };
+
+/* ============ DASHBOARD DATA ============ */
+const RAW = [
+  ["2026-11-05","ECP","Ride",58.1,124,173,1242],
+  ["2026-11-03","Loops","Ride",46.4,96,137,1114],
+  ["2026-11-02","Almost there","VirtualRide",10.0,71,676,646],
+  ["2026-10-31","Back to base","Ride",4.0,9,28,114],
+  ["2026-10-31","Solo Changi","Ride",85.4,164,140,2022],
+  ["2026-10-29","Back to Base","Ride",10.4,25,49,254],
+  ["2026-10-29","Stadium Loops","Ride",43.3,79,64,1095],
+  ["2026-10-28","GC Base","Ride",34.6,96,183,1145],
+  ["2026-10-24","Hounds Saturday","Ride",86.1,162,468,1916],
+  ["2026-10-23","Morning Ride","Ride",37.2,84,190,909],
+  ["2026-10-22","Morning Ride","Ride",38.8,103,428,1045],
+  ["2026-10-18","Cape to Cape Stage 4 - Final","Ride",40.8,146,864,2042],
+  ["2026-10-17","Cape to Cape Stage 3","Ride",54.8,175,820,2373],
+  ["2026-10-16","Cape to Cape Stage 2","Ride",45.1,188,1222,2347],
+  ["2026-10-15","Lunch Ride","Ride",4.0,13,45,98],
+  ["2026-10-15","Cape to Cape Stage 1","Ride",40.9,134,885,1897],
+  ["2026-10-15","Morning Ride","Ride",3.9,12,57,145],
+  ["2026-10-14","Trail warm ups","Ride",13.9,62,259,663],
+  ["2026-10-13","Perth trails","Ride",16.0,56,214,656],
+  ["2026-10-10","Zwift - Oct10 - Sat MTB 2h Controlled","VirtualRide",39.1,140,1172,1270],
+  ["2026-10-08","Morning Ride","Ride",37.7,97,409,956],
+  ["2026-10-06","ECP","Ride",52.0,105,119,1169],
+  ["2026-10-05","Zwift - Oct05 - Mon Easy 50min","VirtualRide",17.5,50,297,395],
+  ["2026-10-03","Special(ized) Jungle time","Ride",47.1,183,666,1841],
+  ["2026-10-02","Greyhounds Cruise F1 edition","Ride",37.1,85,185,893],
+  ["2026-10-01","Morning Ride","Ride",28.7,92,507,1053],
+  ["2026-09-30","Zwift - Week 7 Day 3 - Endurance Z2","VirtualRide",42.9,85,340,888],
+  ["2026-09-29","Zwift - Week 7 Day 2 - Race Mix 3x5 + Sprints","VirtualRide",40.2,75,159,817],
+  ["2026-09-26","Greyhounds RTI","Ride",118.2,206,384,2518],
+  ["2026-09-24","Sentosa","Ride",40.9,94,451,1108],
+  ["2026-09-23","3x12 OverUnders","VirtualRide",40.8,73,64,791],
+  ["2026-09-22","Morning Ride","Ride",57.3,112,131,1309],
+  ["2026-09-21","Steady Z2 Base Training","VirtualRide",20.8,60,500,687],
+  ["2026-09-19","MTBing","Ride",43.7,157,603,1687],
+  ["2026-09-17","Morning Ride","Ride",23.6,70,374,816],
+  ["2026-09-16","Vo2Max","VirtualRide",34.2,68,149,740],
+  ["2026-09-15","Morning Ride","Ride",53.7,110,131,1242],
+  ["2026-09-14","Morning Ride","Ride",37.3,95,177,1097],
+  ["2026-09-12","Sentosa Hills and Thrills","Ride",61.2,178,923,2102],
+  ["2026-09-11","45mins recovery","VirtualRide",18.6,45,205,323],
+  ["2026-09-10","Morning Ride","Ride",34.4,104,554,1205],
+  ["2026-09-09","Coffee home","Ride",9.0,20,29,216],
+  ["2026-09-09","Greyhounds Bus","Ride",75.3,130,141,1707],
+  ["2026-09-08","Morning Ride","Ride",56.8,110,164,1305],
+  ["2026-09-05","Jungle time","Ride",48.5,163,513,1694],
+  ["2026-09-04","Endurance Z2","VirtualRide",14.2,46,342,437],
+  ["2026-09-03","Morning Ride","Ride",27.5,86,360,949],
+  ["2026-09-02","Morning Ride","Ride",36.5,86,243,835],
+  ["2026-09-01","ECP","Ride",54.9,109,154,1256],
+  ["2026-08-31","Got wet","Ride",32.6,80,87,694],
+  ["2026-08-29","Jungle time","Ride",50.0,183,637,1994],
+  ["2026-08-27","Afternoon Ride","Ride",2.2,10,24,69],
+  ["2026-08-27","MTB Climbs","Ride",27.2,84,420,986],
+  ["2026-08-26","Morning Ride","Ride",37.5,97,172,1102],
+  ["2026-08-25","VO2 30-30","VirtualRide",30.6,63,345,729],
+  ["2026-08-24","Lunch Ride","Ride",16.8,63,158,544],
+  ["2026-08-22","Back","Ride",9.0,22,40,209],
+  ["2026-08-22","Greyhounds Saturday Loop","Ride",135.4,240,670,3119],
+  ["2026-08-21","Endurance Z2","VirtualRide",43.6,85,257,835],
+  ["2026-08-20","Tempo 3x10","VirtualRide",36.4,65,57,716],["2026-08-19","Morning Ride","Ride",35.7,96,197,1146],
+  ["2026-08-18","VO2 30-30","VirtualRide",31.1,61,333,720],["2026-08-17","Pacer Group Ride","VirtualRide",6.1,11,32,114],
+  ["2026-08-17","Endurance Z2","VirtualRide",36.7,75,217,728],["2026-08-15","Jungle Trails","Ride",52.2,171,508,1887],
+  ["2026-08-14","Road Cycling","VirtualRide",35.8,70,293,739],["2026-08-13","VO2 30-30","VirtualRide",36.9,68,58,720],
+  ["2026-08-11","Endurance","Ride",50.9,100,112,1249],["2026-08-10","National Day Sentosa","Ride",35.9,74,303,928],
+  ["2026-08-08","Ubin loops","Ride",22.0,96,366,953],["2026-08-07","45min Recovery","VirtualRide",21.6,45,33,322],
+  ["2026-08-06","VO2Max 6x3","VirtualRide",27.7,60,195,568],["2026-08-05","GC base with Charles","Ride",41.8,120,205,1284],
+  ["2026-08-04","Morning Ride","Ride",50.4,101,112,1070],["2026-08-03","Threshold Builder","VirtualRide",35.8,75,460,903],
+  ["2026-08-01","Fun in trails","Ride",58.1,183,495,2065],["2026-07-31","Recovery Spin 45","VirtualRide",7.1,45,349,321],
+  ["2026-07-30","VO2Max 6x3","VirtualRide",35.0,71,178,713],["2026-07-29","MTB Endurance","VirtualRide",10.8,57,552,554],
+  ["2026-07-28","Threshold Builder","VirtualRide",37.6,70,84,783],["2026-07-25","Lunch Ride","Ride",9.0,21,32,207],
+  ["2026-07-25","Greyhounds Sat","Ride",97.4,175,491,2118],["2026-07-24","Steady Z2 Base","VirtualRide",29.4,60,319,618],
+  ["2026-07-22","Aerobic Endurance HR","VirtualRide",32.1,60,174,670],["2026-07-21","ECP","Ride",50.8,98,105,1186],
+  ["2026-07-20","Sweetspot Intervals","VirtualRide",28.0,50,44,563],["2026-07-18","Greyhounds Sat","Ride",125.0,224,818,2723],
+  ["2026-07-17","Back","Ride",9.0,21,30,199],["2026-07-17","TGIF Coffee Cruise","Ride",51.5,112,482,1223],
+  ["2026-07-15","Back to Base","Ride",9.0,21,31,207],["2026-07-15","2up Bus","Ride",46.7,81,90,1070],
+  ["2026-07-14","Morning Ride","Ride",50.9,101,115,1203],["2026-07-13","OverUnders","VirtualRide",31.4,62,264,695],
+  ["2026-07-11","Jungle Hounds","Ride",51.4,173,474,1772],["2026-07-10","Lunch Ride","Ride",16.8,53,107,465],
+  ["2026-07-09","Sentosa","Ride",33.4,86,358,919],["2026-07-08","Morning Ride","Ride",28.7,77,63,850],
+  ["2026-07-07","Strength Dev","VirtualRide",30.3,64,355,653],["2026-07-06","Recovery Spin 45","VirtualRide",29.7,60,188,542],
+  ["2026-07-04","Gym Ride (trainer)","Ride",0.0,50,0,0],["2026-07-03","OverUnders","VirtualRide",37.4,66,59,726],
+  ["2026-07-02","Steady State Cruise","VirtualRide",22.7,45,84,391],["2026-07-01","Loops","Ride",34.8,95,73,1102],
+  ["2026-06-30","VO2 Microbursts","VirtualRide",28.0,50,44,568],["2026-06-29","75 Easy Recovery","VirtualRide",17.8,60,445,537],
+  ["2026-06-27","Trails","Ride",52.2,193,523,1928],["2026-06-26","45min Recovery","VirtualRide",19.9,42,81,325],
+  ["2026-06-25","One Minute Bursts","VirtualRide",20.4,77,810,815],["2026-06-24","Aerobic Strength Builder","VirtualRide",30.6,62,257,655],
+  ["2026-06-23","My Own Pyramid VO2","VirtualRide",34.4,72,301,768],["2026-06-22","Pacer Tempo","VirtualRide",30.5,60,115,581],
+  ["2026-06-20","Trails","Ride",47.5,193,591,1875],["2026-06-18","Morning Ride","Ride",35.2,95,43,1005],
+  ["2026-06-17","My Own Pyramid","VirtualRide",35.1,70,186,748],["2026-06-16","GC Endurance","Ride",38.7,111,157,1091],
+  ["2026-06-15","Tempus Fugit","VirtualRide",30.8,56,47,572],["2026-06-13","Trails (puncture)","Ride",25.8,82,192,848],
+  ["2026-06-12","Morning Ride","Ride",35.2,80,121,917],["2026-06-11","Morning Ride","Ride",34.6,87,385,873],
+  ["2026-06-10","My Own Pyramid","VirtualRide",39.0,73,59,730],["2026-06-09","East Coast Endurance","Ride",51.5,103,115,1136],
+  ["2026-06-06","Greyhounds MTB","Ride",36.8,130,402,1271],["2026-06-05","Jungle trails","Ride",28.9,91,261,894],
+  ["2026-06-04","Sentosa Hounds","Ride",53.2,116,578,1262],["2026-06-03","Morning Tempo","Ride",42.1,115,190,1188],
+  ["2026-06-01","Changi jet lag buster","Ride",90.6,192,171,1931],["2026-05-30","Barcelona Tibidabo Hills","Ride",53.6,155,1059,1670],
+  ["2026-05-24","Last ride in GE/DK","Ride",90.7,217,644,2270],
+].map(([date, name, sport, km, min, elev, cal]) => ({ date, name, sport, km, hrs: min / 60, elev, cal }));
+
+const POWER_ZONES = [
+  { z: "Z1", label: "Recovery", range: "0\u2013143W", pct: "<55%", color: "#6B7280" },
+  { z: "Z2", label: "Endurance", range: "144\u2013195W", pct: "55\u201375%", color: "#4A6FA5" },
+  { z: "Z3", label: "Tempo", range: "196\u2013234W", pct: "75\u201390%", color: "#3F9C8B" },
+  { z: "Z4", label: "Threshold", range: "235\u2013273W", pct: "90\u2013105%", color: "#E8A33D" },
+  { z: "Z5", label: "VO2max", range: "274\u2013312W", pct: "105\u2013120%", color: "#E0692F" },
+  { z: "Z6", label: "Anaerobic", range: "313\u2013390W", pct: "120\u2013150%", color: "#C6432C" },
+  { z: "Z7", label: "Neuromuscular", range: "391W+", pct: ">150%", color: "#9B2C5E" },
+];
+const HR_ZONES = [{ z: "Z1", range: "<130 bpm" }, { z: "Z2", range: "130\u2013144 bpm" }, { z: "Z3", range: "145\u2013157 bpm" }, { z: "Z4", range: "158\u2013168 bpm" }, { z: "Z5", range: "169+ bpm" }];
+const SPOT_CHECKS = [
+  { date: "Sep 2", name: "Morning Ride (Sentosa hill reps)", watts: 136, hr: 127, pctFtp: 52, zone: "Z2 / hill efforts" },
+  { date: "Sep 1", name: "ECP", watts: 168, hr: 130, pctFtp: 65, zone: "Z2/Z3" },
+  { date: "Aug 31", name: "Got wet (commute pace)", watts: 120, hr: 98, pctFtp: 46, zone: "Z1" },
+  { date: "Aug 20", name: "Tempo 3x10 (Zwift)", watts: 191, hr: 129, pctFtp: 73, zone: "Z3 Tempo" },
+  { date: "Aug 8", name: "Ubin loops (MTB trail)", watts: 143, hr: 151, pctFtp: 55, zone: "Z2 / HR Z3" },
+];
+const POWER_HR_MAP = {
+  "2026-08-08": { watts: 143, hr: 151 },
+  "2026-08-20": { watts: 191, hr: 129 },
+  "2026-08-31": { watts: 120, hr: 98 },
+  "2026-09-01": { watts: 168, hr: 130 },
+  "2026-09-02": { watts: 136, hr: 127 },
+};
+
+function getWeekStart(dstr) { const nd = new Date(dstr); const day = (nd.getDay() + 6) % 7; nd.setDate(nd.getDate() - day); return nd.toISOString().slice(0, 10); }
+function fmtShort(dateStr) { return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }); }
+function fmtMonth(dateStr) { return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", { month: "short" }); }
+
+function estimateIF(name, sport) {
+  const n = name.toLowerCase();
+  if (n.includes("recovery")) return 0.5;
+  if (n.includes("cape to cape")) return 0.82; // race stages: avg ~0.77-0.81 FTP, NP higher
+  if (n.includes("threshold") || n.includes("overunder") || n.includes("sweetspot")) return 0.75;
+  if (n.includes("vo2") || n.includes("pyramid") || n.includes("burst")) return 0.79;
+  if (n.includes("tempo")) return 0.735;
+  if (n.includes("strength")) return 0.68;
+  if (/^back(\s|$)/.test(n)) return 0.53;
+  if (n.includes("trail") || n.includes("ubin") || n.includes("mtb") || n.includes("hounds")) return 0.55;
+  if (sport === "VirtualRide") return 0.62;
+  return 0.58;
+}
+function estimateTSS(hrs, ifactor) { return hrs * ifactor * ifactor * 100 * CALIBRATION_SCALE; }
+// Calibrated against real TrainingPeaks numbers (Fitness 73 / Fatigue 89, Aug 24 2026),
+// adjusted for TrainingPeaks' FTP moving to 260W to match Strava. With both platforms on
+// the same FTP, this factor is almost entirely Garmin reading higher power than Strava
+// for this athlete's setup, not a settings mismatch.
+const CALIBRATION_SCALE = 1.76;
+function tsbLabel(tsb) {
+  if (tsb > 25) return { text: "Very fresh", color: "#4A6FA5" };
+  if (tsb > 5) return { text: "Fresh / race-ready", color: "#3F9C8B" };
+  if (tsb > -10) return { text: "Neutral", color: "#8B8D91" };
+  if (tsb > -30) return { text: "Building fitness", color: "#E8A33D" };
+  return { text: "High fatigue \u2014 watch overreaching", color: "#C6432C" };
+}
+function stageReadiness(tsb) {
+  if (tsb > 15) return { text: "Fresh \u2014 best legs of the race", color: "#4A6FA5" };
+  if (tsb > -15) return { text: "Solid \u2014 manageable fatigue", color: "#3F9C8B" };
+  if (tsb > -40) return { text: "Fatigued \u2014 normal this deep into a stage race", color: "#E8A33D" };
+  return { text: "Deep fatigue \u2014 everyone's in the same boat by now", color: "#E0692F" };
+}
+
+/* ============ PLAN DATA ============ */
+const STAGES = [
+  { n: 1, name: "Cape Leeuwin", date: "Thu Oct 15", km: 40.1, elev: 709, note: "Redesigned: no Heartbreak Hill. Rolling build to a ~210m high point (km 23\u201325), big drop at km 26, late climb km 29\u201332; aid station ~km 19\u201320" },
+  { n: 2, name: "Nannup", date: "Fri Oct 16", km: 44.8, elev: 1028, note: "Most climbing of the week; Tank 7 MTB Park, technical DH (Eagle Eye), Stairway to Seven climb" },
+  { n: 3, name: "Margaret River (Queen Stage)", date: "Sat Oct 17", km: 57.1, elev: 771, note: "Longest day; ~25km through The Pines singletrack, flatter river trail finish" },
+  { n: 4, name: "Cape Naturaliste", date: "Sun Oct 18", km: 41.4, elev: 685, note: "Sheens Rd climb, ~22km technical singletrack (loose pea gravel), final climb to Wise Winery" },
+];
+const RACE_TOTAL = { km: STAGES.reduce((s, x) => s + x.km, 0), elev: STAGES.reduce((s, x) => s + x.elev, 0) };
+
+const STAGE_STRATEGY = [
+  {
+    dateKey: "2026-10-15",
+    tactics: "The redesigned Stage 1 (40.1km, 709m) has no Heartbreak Hill, so it rewards steady pacing more than one big effort on a single climb, and you'll be at your freshest all week. From the official profile: a short early bump around km 4 (roughly +120m), then a long rolling build from about km 11 to a high point of around 210m near km 23\u201325. That build is the real work of the day, so ride it as one sustained block at a controlled tempo instead of reacting to every roller, and refuel at the aid station (around km 19\u201320) without breaking rhythm. Around km 26 the course drops steeply back near sea level, so use that to recover, because there's one more climb from about km 29 to 32 (roughly +90m) that arrives when fatigue has built. After it the course is net downhill to the lighthouse, so anything you have left becomes free speed.",
+    watchouts: "With no big wall to hit, the risk is going out too hard on the early rolling sections \u2014 the climb around km 30\u201332 is where that shows. The map doesn't show surfaces or technical features, so check the rider guide for those.",
+  },
+  {
+    dateKey: "2026-10-16",
+    tactics: "The biggest climbing total of the week (1028m) lands on day 2, while legs are still relatively fresh \u2014 this is the stage where your engine matters most. The technical descents at Tank 7 MTB Park (Eagle Eye) are the real risk: your technical MTB mileage has been real but a small fraction of total training volume, so ride these within your limits \u2014 losing 30 seconds descending safely beats losing the rest of the race to a crash. Pace the Stairway to Seven climb evenly rather than surging into it.",
+    watchouts: "Technical descending under fatigue is the main risk today, not the climbing.",
+  },
+  {
+    dateKey: "2026-10-17",
+    tactics: "The longest day (57.1km), and by now real fatigue has set in \u2014 this is as much a mental test as physical. The fast gravel start will tempt you to match surges you don't need to follow \u2014 settle into your own rhythm early. The 25km through The Pines is the technical crux of the entire race: consciously save energy on the earlier gravel specifically for this section, since technical singletrack while fatigued is exactly where mistakes happen. Fueling discipline matters most today of all four stages \u2014 a nutrition mistake compounds fastest on the longest day.",
+    watchouts: "Save reserves for The Pines \u2014 it's not the place to arrive already empty.",
+  },
+  {
+    dateKey: "2026-10-18",
+    tactics: "Shortest stage, but you'll be genuinely tired \u2014 that's normal for everyone this deep into a 4-day race, not a sign anything went wrong. Sheens Road climbs early; pace it knowing 22km of technical singletrack (loose pea gravel, granite rock) is still ahead \u2014 the most technically demanding surface of the whole event, and fatigue plus loose surface is a bad combination, so back off your cornering commitment slightly versus how you'd ride it fresh. The final climb to Wise Winery is the last effort of the entire race \u2014 whatever's left, spend it there.",
+    watchouts: "It being the shortest stage is a real psychological edge \u2014 the finish arrives sooner than the other three days.",
+  },
+];
+
+
+const WEEKS = [
+  { theme: "Base \u2014 Establish Climbing Legs", days: [
+    { t: "Endurance + Skills", d: 120, z: "Z2", desc: "2hr easy trail miles; work loose/sandy corners if available." },
+    { t: "Explosive Hill Reps", d: 60, z: "Z6", desc: "8x1min @ 120\u2013140% FTP, 3min easy spin recovery." },
+    { t: "Endurance Ride", d: 90, z: "Z2", desc: "Steady rolling terrain, conversational pace." },
+    { t: "Threshold Climb Sim", d: 60, z: "Z4", desc: "3x8min @ 90\u2013100% FTP seated, low cadence climbing focus." },
+    { t: "Recovery Spin", d: 45, z: "Z1", desc: "Easy spin, high cadence, keep HR low." },
+    { t: "Long Ride + Hill Efforts", d: 150, z: "Z2", desc: "2.5hr outdoor Z2 with 2x short steep efforts to keep some punch in the legs." },
+    { t: "Rest", d: 0, z: "Rest", desc: "Family day \u2014 full rest." },
+  ]},
+  { theme: "Base \u2014 Add Volume", days: [
+    { t: "Endurance + Skills", d: 120, z: "Z2", desc: "2hr easy, technical line choice practice on descents." },
+    { t: "Explosive Hill Reps", d: 55, z: "Z6", desc: "10x45sec max effort, 2min recovery." },
+    { t: "Endurance Ride", d: 100, z: "Z2", desc: "Steady aerobic, add 15min over last week." },
+    { t: "Prolonged Climb Intervals", d: 65, z: "Z4", desc: "3x10min @ threshold, seated then 1min standing surge each rep." },
+    { t: "Recovery Spin", d: 45, z: "Z1", desc: "Easy, legs-only spin." },
+    { t: "Long Ride + Hill Repeats", d: 180, z: "Z3", desc: "3hr outdoor; find a local hill, repeat 4\u20135x at tempo/threshold." },
+    { t: "Rest", d: 0, z: "Rest", desc: "Family day \u2014 full rest." },
+  ]},
+  { theme: "Build \u2014 First Back-to-Back", days: [
+    { t: "Easy Spin", d: 40, z: "Z1", desc: "Shakeout before the intensity block." },
+    { t: "VO2 Explosive Hill Reps", d: 60, z: "Z5", desc: "6x3min @ 105\u2013120% FTP on a climb, 3min recovery." },
+    { t: "Endurance Ride", d: 90, z: "Z2", desc: "Steady aerobic, easy day between hard sessions." },
+    { t: "Threshold Climbing", d: 65, z: "Z4", desc: "4x8min @ threshold, simulating sustained race climbs." },
+    { t: "Stage-Sim Day 1", d: 150, z: "Z3", desc: "~35km outdoor, ~500m climbing. Race-pace practice, fuel every 45min." },
+    { t: "Stage-Sim Day 2 (back-to-back)", d: 150, z: "Z2", desc: "~35km on tired legs, day after. Focus on pacing discipline." },
+    { t: "Rest", d: 0, z: "Rest", desc: "Family day \u2014 full rest, recover from the back-to-back." },
+  ]},
+  { theme: "Recovery \u2014 Absorb the Block", days: [
+    { t: "Endurance / Social", d: 90, z: "Z2", desc: "Easy group pace, enjoy it \u2014 next block is the biggest yet." },
+    { t: "Easy Spin", d: 45, z: "Z1", desc: "Very easy, no structure." },
+    { t: "Endurance Ride", d: 60, z: "Z2", desc: "Short and easy \u2014 volume is intentionally down this week." },
+    { t: "Hill Sharpener", d: 35, z: "Z5", desc: "5x2min moderate-hard on a climb \u2014 just enough to hold sharpness." },
+    { t: "Rest", d: 0, z: "Rest", desc: "Full rest." },
+    { t: "Moderate Ride", d: 90, z: "Z2", desc: "Relaxed pace, social if possible." },
+    { t: "Rest", d: 0, z: "Rest", desc: "Family day \u2014 full rest." },
+  ]},
+  { theme: "Build 2 \u2014 Race-Distance Reps", days: [
+    { t: "Recovery Spin", d: 45, z: "Z1", desc: "Easy spin before the intensity block." },
+    { t: "Explosive Hill Reps", d: 60, z: "Z6", desc: "10x1min max effort climbing, short recovery." },
+    { t: "Endurance Ride", d: 100, z: "Z2", desc: "Steady aerobic volume." },
+    { t: "Prolonged Climb Reps", d: 70, z: "Z4", desc: "3x12min @ threshold \u2014 longest sustained efforts yet." },
+    { t: "Stage-Sim Day 1", d: 165, z: "Z3", desc: "~42km, ~700m climbing \u2014 approaching real stage distance." },
+    { t: "Stage-Sim Day 2 (back-to-back)", d: 160, z: "Z2", desc: "~42km, ~650m climbing on tired legs. Practice nutrition timing." },
+    { t: "Rest", d: 0, z: "Rest", desc: "Family day \u2014 full rest, recover from the back-to-back." },
+  ]},
+  { theme: "Peak \u2014 3-Day Race Simulation", days: [
+    { t: "Shakeout Spin", d: 30, z: "Z1", desc: "Very short and easy, priming for the week ahead." },
+    { t: "VO2 Hill Reps", d: 60, z: "Z5", desc: "6x3min hard climbing efforts \u2014 last real intensity before the sim block." },
+    { t: "Easy Endurance", d: 90, z: "Z2", desc: "Keep it light, save legs for the 3-day block." },
+    { t: "Stage-Sim Day 1", d: 170, z: "Z3", desc: "~40km / ~700m climbing \u2014 mirrors the redesigned Stage 1: a long rolling build, a big drop, then a late climb." },
+    { t: "Stage-Sim Day 2 (back-to-back)", d: 175, z: "Z4", desc: "~45km / ~1000m climbing, day after \u2014 mirrors Stage 2." },
+    { t: "Stage-Sim Day 3 (back-to-back)", d: 190, z: "Z3", desc: "~50km / ~750m, third day in a row \u2014 longest day, dial in fuelling." },
+    { t: "Rest", d: 0, z: "Rest", desc: "Family day \u2014 full rest after the biggest week of the block." },
+  ]},
+  { theme: "Taper Begins", days: [
+    { t: "Easy Spin + Skills", d: 45, z: "Z1", desc: "Very easy, technical line practice only." },
+    { t: "Sharpener", d: 35, z: "Z5", desc: "6x1min quick efforts, otherwise easy." },
+    { t: "Endurance Ride", d: 60, z: "Z2", desc: "Short and easy." },
+    { t: "Threshold Touch", d: 40, z: "Z4", desc: "3x5min @ threshold \u2014 brief reminder, not a workout." },
+    { t: "Super Easy Spin", d: 40, z: "Z1", desc: "Very easy flush-out spin, legs only. Lowest effort of the week \u2014 let the last hard ride and the cold settle." },
+    { t: "Oxygen Ride", d: 50, z: "Z2", desc: "Relaxed endurance ride, a few short pickups by feel to open the lungs. Stay conversational and finish fresh. Last ride before travel." },
+    { t: "Rest", d: 0, z: "Rest", desc: "Family day \u2014 full rest." },
+  ]},
+  { theme: "Race Week", days: [
+    { t: "Travel Day", d: 0, z: "Rest", desc: "Travelling to WA \u2014 no riding. Bike check, pack, hydrate." },
+    { t: "Leg Spinner", d: 30, z: "Z1", desc: "Very easy spin to loosen the legs after travel. No effort, no targets." },
+    { t: "Activation Ride", d: 30, z: "Z5", desc: "Easy spinning with 3x30sec openers at race effort, spin easy between each. Short and sharp, then feet up." },
+    { t: "STAGE 1 \u2014 Cape Leeuwin", d: 150, z: "Race", desc: "40.1km / 709m. No single big wall now \u2014 pace the long rolling build to the mid-stage high point and save something for the late climb near km 30\u201332." },
+    { t: "STAGE 2 \u2014 Nannup", d: 155, z: "Race", desc: "44.8km / 1028m. Biggest climbing day \u2014 ride the technical DH within your limit." },
+    { t: "STAGE 3 \u2014 Margaret River", d: 180, z: "Race", desc: "57.1km / 771m. Queen Stage, longest day \u2014 hold something back for The Pines." },
+    { t: "STAGE 4 \u2014 Cape Naturaliste", d: 140, z: "Race", desc: "41.4km / 685m. Shortest but technical \u2014 empty the tank to Wise Winery." },
+  ]},
+  { theme: "Recovery \u2014 Post Cape to Cape", days: [
+    { t: "Travel Day", d: 0, z: "Rest", desc: "Flying back from WA \u2014 no training, just travel and recovery." },
+    { t: "Rest", d: 0, z: "Rest", desc: "Full rest. Four days of stage racing needs real recovery, not just a day." },
+    { t: "Rest", d: 0, z: "Rest", desc: "Rest day \u2014 runny nose, let the body recover after four days of stage racing." },
+    { t: "Easy Group Ride", d: 75, z: "Z2", desc: "Easy Z2 with the group. Stay conversational, let the group set a relaxed pace and skip any surges." },
+    { t: "Super Easy Spin", d: 40, z: "Z1", desc: "Very easy flush-out spin, legs only. Keep it effortless before the long ride." },
+    { t: "Easy Long Ride", d: 180, z: "Z2", desc: "Easy 3hr endurance ride to keep the aerobic base up. Steady Z2, eat and drink early, no hard efforts \u2014 crit-specific work starts next week." },
+    { t: "Rest", d: 0, z: "Rest", desc: "Family day \u2014 full rest." },
+  ]},
+  { theme: "Crit Sharpening Block", days: [
+    { t: "Endurance + Cornering Drills", d: 60, z: "Z2", desc: "Steady pace with slow-speed cornering practice mixed in \u2014 figure-8s, late braking, apex lines." },
+    { t: "Sprint Repeats", d: 45, z: "Z6", desc: "8x15sec all-out sprints, 3min easy recovery. Full gas, out of the saddle, explosive power." },
+    { t: "Recovery Spin", d: 30, z: "Z1", desc: "Easy spin, let the legs absorb yesterday's sprints." },
+    { t: "Crit Surge Simulation", d: 50, z: "Z5", desc: "10x30sec hard efforts (~125\u2013130% FTP) with 90sec easy between \u2014 mimics accelerating out of a corner." },
+    { t: "Rest", d: 0, z: "Rest", desc: "Full rest before the weekend." },
+    { t: "Group Ride / Race-Pace Practice", d: 75, z: "Z5", desc: "Fast group ride if you can find one \u2014 practice positioning, surging, and holding a wheel in a pack." },
+    { t: "Rest", d: 0, z: "Rest", desc: "Family day \u2014 full rest." },
+  ]},
+  { theme: "Taper to Crit", days: [
+    { t: "Easy Spin", d: 30, z: "Z1", desc: "Easy, legs-only." },
+    { t: "Sharpener", d: 30, z: "Z5", desc: "4x20sec openers, otherwise easy. Keep it snappy, not tiring \u2014 a reminder, not a workout." },
+    { t: "Rest", d: 0, z: "Rest", desc: "Full rest." },
+    { t: "Sprint Touch", d: 25, z: "Z6", desc: "3x10sec max sprints, long recovery. Waking up the fast-twitch fibers, nothing taxing." },
+    { t: "Rest", d: 0, z: "Rest", desc: "Full rest \u2014 two days out." },
+    { t: "Easy Spin + Openers", d: 25, z: "Z1", desc: "20min easy + 3x20sec efforts. Legs should feel fresh and snappy tomorrow." },
+    { t: "RACE DAY \u2014 Singapore TdF Crit", d: 75, z: "Race", desc: "Warm up properly with a few hard efforts before the gun \u2014 crits go hard from the first corner. Hold your position and race smart." },
+  ]},
+  { theme: "Reset \u2014 Crit Recovery & Restart", days: [
+    {"t": "Rest", "d": 0, "z": "Rest", "desc": "Full rest after the crit. No cycling, no gym."},
+    {"t": "Rest", "d": 0, "z": "Rest", "desc": "Second day off cycling. Walk, stretch, eat well."},
+    {"t": "Gym Day \u2014 Off the Bike", "d": 0, "z": "Rest", "desc": "Last day off the bike. First gym session at noon, an easy intro to learn the lifts.", "gym": {"t": "Gym A \u2014 Lower-body strength (intro)", "d": 45, "desc": "Easy first session, 4+ reps left in the tank every set. Warm up 5 min. Goblet squat 2x10, Romanian deadlift (dumbbells) 2x10, glute bridge 2x12, calf raise 2x12, plank 2x30sec. Learn the movements, don't chase soreness."}},
+    {"t": "Return Ride \u2014 Easy Group", "d": 75, "z": "Z2", "desc": "First ride back, easy Z2 with friends. Stay conversational and skip any surges.", "keep": true},
+    {"t": "Easy Spin", "d": 40, "z": "Z1", "desc": "Very easy spin, legs only.", "keep": true},
+    {"t": "Group Ride \u2014 Mountain or Road", "d": 120, "z": "Z2", "desc": "Decide the day before: mountain bike or road bike. Endurance effort, eat and drink early. Shorter than usual in the restart week; stop at 2hr even if you feel strong.", "keep": true},
+    {"t": "Rest", "d": 0, "z": "Rest", "desc": "Family day \u2014 full rest."},
+  ]},
+  { theme: "Maintain & Build 1 \u2014 Gym Starts", days: [
+    {"t": "Gym Day \u2014 Off the Bike", "d": 0, "z": "Rest", "desc": "No riding today. Gym A at noon, the heavier lower-body session. Rest of the day is free.", "gym": {"t": "Gym A \u2014 Lower-body strength", "d": 45, "desc": "Warm up 5 min. Squat 3x10 (goblet or barbell), Romanian deadlift 3x10, hip thrust 3x10, calf raise 3x12, plank 3x40sec. Moderate load, about 3 reps left in the tank."}},
+    {"t": "Group Ride \u2014 Weekday", "d": 75, "z": "Z2", "desc": "Ride with friends and let the group set the pace. Skip the sprints and the attacks, stay in the draft, and finish feeling like you could ride more.", "keep": true},
+    {"t": "Gym Day \u2014 Off the Bike", "d": 0, "z": "Rest", "desc": "No riding today. Gym B at noon, kept light so Thursday's ride isn't affected.", "gym": {"t": "Gym B \u2014 Single-leg & core", "d": 45, "desc": "Warm up 5 min. Split squat 3x8 per leg, step-up 3x8 per leg, hamstring curl 3x10, side plank 3x30sec each side. Moderate load, about 3 reps left in the tank."}},
+    {"t": "Sweet Spot Intervals", "d": 75, "z": "Z3", "desc": "2x15min @ about 88\u201392% FTP (upper tempo), 5min easy between. Aerobic strength that holds your fitness without a big fatigue bill."},
+    {"t": "Easy Spin", "d": 50, "z": "Z1", "desc": "Easy spin before Saturday's group ride. Legs only, no effort.", "keep": true},
+    {"t": "Group Ride \u2014 Mountain or Road", "d": 150, "z": "Z2", "desc": "Decide the day before: mountain bike or road bike. Endurance effort, eat and drink early. Keep it steady.", "keep": true},
+    {"t": "Rest", "d": 0, "z": "Rest", "desc": "Rest day."},
+  ]},
+  { theme: "Maintain & Build 2", days: [
+    {"t": "Gym Day \u2014 Off the Bike", "d": 0, "z": "Rest", "desc": "No riding today. Gym A at noon, the heavier lower-body session. Rest of the day is free.", "gym": {"t": "Gym A \u2014 Lower-body strength", "d": 45, "desc": "Warm up 5 min. Squat 3x8, Romanian deadlift 3x8, hip thrust 3x8, calf raise 3x12, plank 3x45sec. Add a little weight if last week felt easy."}},
+    {"t": "VO2 Boosters", "d": 70, "z": "Z5", "desc": "5x3min @ 108\u2013115% FTP, 3min easy between. Keeps the top end sharp for crits and group-ride attacks."},
+    {"t": "Gym Day \u2014 Off the Bike", "d": 0, "z": "Rest", "desc": "No riding today. Gym B at noon, kept light so Thursday's ride isn't affected.", "gym": {"t": "Gym B \u2014 Single-leg & core", "d": 45, "desc": "Warm up 5 min. Split squat 3x8 per leg, step-up 3x8 per leg, single-leg Romanian deadlift 3x8 per leg, hamstring curl 3x10, side plank 3x35sec each side."}},
+    {"t": "Group Ride \u2014 Weekday", "d": 75, "z": "Z2", "desc": "Ride with friends and let the group set the pace. Skip the sprints and the attacks, stay in the draft, and finish feeling like you could ride more.", "keep": true},
+    {"t": "Easy Spin", "d": 50, "z": "Z1", "desc": "Easy spin before Saturday's group ride. Legs only, no effort.", "keep": true},
+    {"t": "Group Ride \u2014 Mountain or Road", "d": 165, "z": "Z2", "desc": "Decide the day before: mountain bike or road bike. Endurance effort, eat and drink early. A little longer than last week, still steady.", "keep": true},
+    {"t": "Rest", "d": 0, "z": "Rest", "desc": "Rest day."},
+  ]},
+  { theme: "Absorb \u2014 Lighter Week", days: [
+    {"t": "Gym Day \u2014 Off the Bike", "d": 0, "z": "Rest", "desc": "No riding today. Gym A at noon, the heavier lower-body session. Rest of the day is free.", "gym": {"t": "Gym A \u2014 Lower-body strength (lighter week)", "d": 45, "desc": "Warm up 5 min. Squat 2x8, Romanian deadlift 2x8, hip thrust 2x8, calf raise 2x12, plank 2x45sec. Same movements, about 80% of last week's weights."}},
+    {"t": "Group Ride \u2014 Weekday", "d": 60, "z": "Z2", "desc": "Ride with friends and let the group set the pace. Skip the sprints and the attacks, stay in the draft, and finish feeling like you could ride more.", "keep": true},
+    {"t": "Gym Day \u2014 Off the Bike", "d": 0, "z": "Rest", "desc": "No riding today. Gym B at noon, kept light so Thursday's ride isn't affected.", "gym": {"t": "Gym B \u2014 Single-leg & core (lighter week)", "d": 45, "desc": "Warm up 5 min. Split squat 2x8 per leg, step-up 2x8 per leg, hamstring curl 2x10, side plank 2x30sec each side. About 80% of last week's weights."}},
+    {"t": "Tempo Touch", "d": 60, "z": "Z3", "desc": "2x10min @ steady tempo (about 80\u201385% FTP), 5min easy between. Lighter week, finish feeling fresh."},
+    {"t": "Easy Spin", "d": 45, "z": "Z1", "desc": "Easy spin before Saturday's group ride. Legs only, no effort.", "keep": true},
+    {"t": "Group Ride \u2014 Mountain or Road", "d": 120, "z": "Z2", "desc": "Decide the day before: mountain bike or road bike. Endurance effort, eat and drink early. Shorter, easy week.", "keep": true},
+    {"t": "Rest", "d": 0, "z": "Rest", "desc": "Rest day."},
+  ]},
+  { theme: "Maintain & Build 3", days: [
+    {"t": "Gym Day \u2014 Off the Bike", "d": 0, "z": "Rest", "desc": "No riding today. Gym A at noon, the heavier lower-body session. Rest of the day is free.", "gym": {"t": "Gym A \u2014 Lower-body strength", "d": 45, "desc": "Warm up 5 min. Squat 4x6, Romanian deadlift 3x8, hip thrust 3x8, calf raise 3x12, plank 3x45sec. Heavier but controlled, 2 reps left in the tank."}},
+    {"t": "Sweet Spot Builder", "d": 80, "z": "Z3", "desc": "3x12min @ about 88\u201392% FTP, 4min easy between. A step up from the 2x15 block."},
+    {"t": "Gym Day \u2014 Off the Bike", "d": 0, "z": "Rest", "desc": "No riding today. Gym B at noon, kept light so Thursday's ride isn't affected.", "gym": {"t": "Gym B \u2014 Single-leg & core", "d": 45, "desc": "Warm up 5 min. Bulgarian split squat 3x6 per leg, step-up 3x8 per leg, single-leg Romanian deadlift 3x8 per leg, hamstring curl 3x8, side plank 3x40sec each side."}},
+    {"t": "Group Ride \u2014 Weekday", "d": 75, "z": "Z2", "desc": "Ride with friends and let the group set the pace. Skip the sprints and the attacks, stay in the draft, and finish feeling like you could ride more.", "keep": true},
+    {"t": "Easy Spin", "d": 50, "z": "Z1", "desc": "Easy spin before Saturday's group ride. Legs only, no effort.", "keep": true},
+    {"t": "Group Ride \u2014 Mountain or Road", "d": 165, "z": "Z2", "desc": "Decide the day before: mountain bike or road bike. Endurance effort, eat and drink early. Steady endurance; a bit longer.", "keep": true},
+    {"t": "Rest", "d": 0, "z": "Rest", "desc": "Rest day."},
+  ]},
+  { theme: "Maintain & Build 4", days: [
+    {"t": "Gym Day \u2014 Off the Bike", "d": 0, "z": "Rest", "desc": "No riding today. Gym A at noon, the heavier lower-body session. Rest of the day is free.", "gym": {"t": "Gym A \u2014 Lower-body strength", "d": 45, "desc": "Warm up 5 min. Squat 4x6, Romanian deadlift 3x6, hip thrust 3x8, calf raise 3x12, side plank 3x30sec each side. Add a little weight where the last set felt smooth."}},
+    {"t": "Group Ride \u2014 Weekday", "d": 75, "z": "Z2", "desc": "Ride with friends and let the group set the pace. Skip the sprints and the attacks, stay in the draft, and finish feeling like you could ride more.", "keep": true},
+    {"t": "Gym Day \u2014 Off the Bike", "d": 0, "z": "Rest", "desc": "No riding today. Gym B at noon, kept light so Thursday's ride isn't affected.", "gym": {"t": "Gym B \u2014 Single-leg & core", "d": 45, "desc": "Warm up 5 min. Bulgarian split squat 3x6 per leg, step-up 3x6 per leg, single-leg Romanian deadlift 3x6 per leg, hamstring curl 3x8, side plank 3x40sec each side."}},
+    {"t": "Threshold Intervals", "d": 80, "z": "Z4", "desc": "3x10min @ 95\u2013100% FTP, 5min easy between. Seated, steady power, the main fitness-building session of the week."},
+    {"t": "Easy Spin", "d": 50, "z": "Z1", "desc": "Easy spin before Saturday's group ride. Legs only, no effort.", "keep": true},
+    {"t": "Group Ride \u2014 Mountain or Road", "d": 180, "z": "Z2", "desc": "Decide the day before: mountain bike or road bike. Endurance effort, eat and drink early. Longest ride of the block so far.", "keep": true},
+    {"t": "Rest", "d": 0, "z": "Rest", "desc": "Rest day."},
+  ]},
+  { theme: "Maintain & Build 5 \u2014 Top of the Block", days: [
+    {"t": "Gym Day \u2014 Off the Bike", "d": 0, "z": "Rest", "desc": "No riding today. Gym A at noon, the heavier lower-body session. Rest of the day is free.", "gym": {"t": "Gym A \u2014 Lower-body strength", "d": 45, "desc": "Warm up 5 min. Squat 4x5, Romanian deadlift 3x6, hip thrust 3x6, calf raise 3x12, side plank 3x30sec each side. Top of this block, keep technique clean."}},
+    {"t": "VO2 Boosters", "d": 70, "z": "Z5", "desc": "6x3min @ 108\u2013115% FTP, 3min easy between. Top-end session, one more rep than the first block."},
+    {"t": "Gym Day \u2014 Off the Bike", "d": 0, "z": "Rest", "desc": "No riding today. Gym B at noon, kept light so Thursday's ride isn't affected.", "gym": {"t": "Gym B \u2014 Single-leg & core", "d": 45, "desc": "Warm up 5 min. Bulgarian split squat 3x6 per leg, step-up 3x6 per leg, single-leg Romanian deadlift 3x6 per leg, hamstring curl 3x8, side plank 3x45sec each side."}},
+    {"t": "Group Ride \u2014 Weekday", "d": 75, "z": "Z2", "desc": "Ride with friends and let the group set the pace. Skip the sprints and the attacks, stay in the draft, and finish feeling like you could ride more.", "keep": true},
+    {"t": "Easy Spin", "d": 50, "z": "Z1", "desc": "Easy spin before Saturday's group ride. Legs only, no effort.", "keep": true},
+    {"t": "Group Ride \u2014 Mountain or Road", "d": 180, "z": "Z2", "desc": "Decide the day before: mountain bike or road bike. Endurance effort, eat and drink early. Longest ride of the block, keep it endurance not race pace.", "keep": true},
+    {"t": "Rest", "d": 0, "z": "Rest", "desc": "Rest day."},
+  ]},
+  { theme: "Reset \u2014 Lighter Week", days: [
+    {"t": "Gym Day \u2014 Off the Bike", "d": 0, "z": "Rest", "desc": "No riding today. Gym A at noon, the heavier lower-body session. Rest of the day is free.", "gym": {"t": "Gym A \u2014 Lower-body strength (lighter week)", "d": 45, "desc": "Warm up 5 min. Squat 2x8, Romanian deadlift 2x8, hip thrust 2x8, calf raise 2x12, plank 2x45sec. Light and smooth."}},
+    {"t": "Group Ride \u2014 Weekday", "d": 75, "z": "Z2", "desc": "Ride with friends and let the group set the pace. Skip the sprints and the attacks, stay in the draft, and finish feeling like you could ride more.", "keep": true},
+    {"t": "Gym Day \u2014 Off the Bike", "d": 0, "z": "Rest", "desc": "No riding today. Gym B at noon, kept light so Thursday's ride isn't affected.", "gym": {"t": "Gym B \u2014 Single-leg & core (lighter week)", "d": 45, "desc": "Warm up 5 min. Split squat 2x8 per leg, step-up 2x8 per leg, hamstring curl 2x10, side plank 2x30sec each side. Light and smooth."}},
+    {"t": "Easy Endurance", "d": 60, "z": "Z2", "desc": "Relaxed Z2, no structure. Easy week, easy day.", "keep": true},
+    {"t": "Easy Spin", "d": 40, "z": "Z1", "desc": "Easy spin before Saturday's group ride. Legs only, no effort.", "keep": true},
+    {"t": "Group Ride \u2014 Mountain or Road", "d": 150, "z": "Z2", "desc": "Decide the day before: mountain bike or road bike. Endurance effort, eat and drink early. Back to a normal length, easy.", "keep": true},
+    {"t": "Rest", "d": 0, "z": "Rest", "desc": "Rest day."},
+  ]},
+];
+const NEXT_EVENT = {
+  name: "Tour de France EFGH Singapore Criterium \u2014 \u00c0 l'Attaque",
+  date: "2026-11-08",
+  venue: "Connaught Drive, Singapore Recreation Club (Marina Bay closed-road circuit)",
+  format: "Standard open individual criterium (confirmed) \u2014 the event weekend (Nov 7\u20138) also runs a Team Time Trial, a Dual Sprint (run + stationary bike), and a Foldie Challenge as separate categories.",
+  courseNote: "The official course map and lap count weren't published as of the last check \u2014 it's a Marina Bay closed-road circuit, which typically means wide, fast roads rather than tight technical corners, but that's inference, not confirmed detail.",
+};
+const BASE_MONDAY = new Date("2026-08-24T00:00:00");
+function dateFor(weekIdx, dayIdx) { const d = new Date(BASE_MONDAY); d.setDate(d.getDate() + weekIdx * 7 + dayIdx); return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); }
+function ymdLocal(d) { const y = d.getFullYear(); const m = String(d.getMonth() + 1).padStart(2, "0"); const dd = String(d.getDate()).padStart(2, "0"); return `${y}-${m}-${dd}`; }
+function dateKeyFor(weekIdx, dayIdx) { const d = new Date(BASE_MONDAY); d.setDate(d.getDate() + weekIdx * 7 + dayIdx); return ymdLocal(d); }
+const TODAY_DATE = "2026-11-05"; // last-sync date (matches LAST_SYNCED, update on every refresh). Whether a day counts as completed depends on what the synced data actually covers, so this stays tied to the sync.
+// The real calendar date from the viewer's own clock (Singapore, for this user).
+// It drives the default week and the countdowns, so those never go stale between syncs.
+const REAL_TODAY = ymdLocal(new Date());
+function daysBetween(fromKey, toKey) {
+  return Math.round((new Date(toKey + "T00:00:00") - new Date(fromKey + "T00:00:00")) / 86400000);
+}
+const CURRENT_WEEK_INDEX = Math.max(0, Math.min(
+  WEEKS.length - 1,
+  Math.floor(daysBetween(ymdLocal(BASE_MONDAY), REAL_TODAY) / 7)
+));
+const DAYS_TO_RACE = Math.max(0, daysBetween(REAL_TODAY, "2026-10-15"));
+const DAYS_TO_CRIT = Math.max(0, daysBetween(REAL_TODAY, "2026-11-08"));
+// Days you told me you deliberately skipped, and why. Strava can't show a skipped session,
+// so it's recorded here. A skipped day counts as no training, isn't treated as a missed
+// session for compliance, and never triggers the add-intensity nudge.
+// Sessions you chose yourself: the adaptive rules leave these exactly as planned.
+const PLAN_LOCKS = {
+  "2026-10-24": "easy 3hr endurance ride, your call",
+  "2026-11-07": "pre-race openers, keep as planned",
+};
+const SKIPPED_DAYS = {
+  "2026-09-28": "tired after a bad night",
+  "2026-10-07": "rest day, not feeling well",
+};
+
+/* ---- Adaptive plan adjustment (see cape-hub.jsx for full rationale) ---- */
+const GYM_TSS = 30; // assumed load of one 45-min gym session (not tracked from Strava)
+const ZONE_IF = { Z1: 0.5, Z2: 0.62, Z3: 0.735, Z4: 0.75, Z5: 0.79, Z6: 0.85, Race: 0.8, Rest: 0 };
+const ADJUST_LABEL = { eased: "AUTO-EASED", added: "AUTO-ADDED", "compliance-eased": "EASED \u2014 LAST RIDE", "compliance-added": "ADDED \u2014 LAST RIDE" };
+
+/* ---- Detailed workout structure (warmup / main set / cooldown), in %FTP - see cape-hub.jsx for full rationale ---- */
+const ZONE_TARGET_PCT = { Z1: 55, Z2: 68, Z3: 85, Z4: 98, Z5: 112, Z6: 135, Z7: 160 };
+function generateWorkout(day) {
+  if (day.d === 0 || day.z === "Race") return null;
+  const totalMin = day.d;
+  const text = day.t + " " + day.desc;
+  const intervalMatch = text.match(/(\d+)\s*x\s*(\d+)\s*(sec|min)/i);
+  const warmupMin = totalMin > 20 ? Math.min(10, Math.max(5, Math.round(totalMin * 0.15))) : 0;
+  const cooldownMin = totalMin > 20 ? Math.min(5, Math.max(3, Math.round(totalMin * 0.08))) : 0;
+  if (intervalMatch) {
+    const reps = parseInt(intervalMatch[1], 10);
+    let workSec = parseInt(intervalMatch[2], 10);
+    if (intervalMatch[3].toLowerCase() === "min") workSec *= 60;
+    const restMatch = text.match(/(\d+)\s*(sec|min)\s*(?:easy\s*)?(?:recovery|spin|easy)/i);
+    let restSec = 180;
+    if (restMatch) {
+      restSec = parseInt(restMatch[1], 10);
+      if (restMatch[2].toLowerCase() === "min") restSec *= 60;
+    }
+    const workPct = workSec <= 20 ? 165 : (ZONE_TARGET_PCT[day.z] || 100);
+    const restPct = 45;
+    const mainMin = Math.round((reps * (workSec + restSec)) / 60);
+    const fillMin = Math.max(0, totalMin - warmupMin - mainMin - cooldownMin);
+    return {
+      type: "interval",
+      plannedMin: totalMin,
+      warmup: warmupMin > 0 ? { min: warmupMin, pctLow: 50, pctHigh: 62 } : null,
+      reps, workSec, workPct, restSec, restPct,
+      fillMin, fillPct: ZONE_TARGET_PCT.Z2,
+      cooldown: cooldownMin > 0 ? { min: cooldownMin, pctLow: 50, pctHigh: 40 } : null,
+    };
+  }
+  const base = ZONE_TARGET_PCT[day.z] || 65;
+  const pctLow = Math.max(45, base - 8), pctHigh = base + 5;
+  const mainMin = Math.max(5, totalMin - warmupMin - cooldownMin);
+  return {
+    type: "steady",
+    plannedMin: totalMin,
+    warmup: warmupMin > 0 ? { min: warmupMin, pctLow: 50, pctHigh: 62 } : null,
+    mainMin, pctLow, pctHigh,
+    cooldown: cooldownMin > 0 ? { min: cooldownMin, pctLow: 50, pctHigh: 40 } : null,
+  };
+}
+function wattsFromPct(pct, ftp) { return Math.round((pct / 100) * ftp); }
+function toZwoXml(day, workout, label) {
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const parts = [];
+  if (workout.warmup) parts.push(`<Warmup Duration="${workout.warmup.min * 60}" PowerLow="${(workout.warmup.pctLow / 100).toFixed(2)}" PowerHigh="${(workout.warmup.pctHigh / 100).toFixed(2)}"/>`);
+  if (workout.type === "interval") {
+    parts.push(`<IntervalsT Repeat="${workout.reps}" OnDuration="${workout.workSec}" OffDuration="${workout.restSec}" OnPower="${(workout.workPct / 100).toFixed(2)}" OffPower="${(workout.restPct / 100).toFixed(2)}"/>`);
+    if (workout.fillMin > 0) parts.push(`<SteadyState Duration="${workout.fillMin * 60}" Power="${(workout.fillPct / 100).toFixed(2)}"/>`);
+  } else {
+    parts.push(`<SteadyState Duration="${workout.mainMin * 60}" Power="${((workout.pctLow + workout.pctHigh) / 2 / 100).toFixed(2)}"/>`);
+  }
+  if (workout.cooldown) parts.push(`<Cooldown Duration="${workout.cooldown.min * 60}" PowerLow="${(workout.cooldown.pctLow / 100).toFixed(2)}" PowerHigh="${(workout.cooldown.pctHigh / 100).toFixed(2)}"/>`);
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<workout_file>\n  <author>Cape to Cape Training Hub</author>\n  <name>${esc(label)}</name>\n  <description>${esc(day.desc || "")}</description>\n  <sportType>bike</sportType>\n  <workout>\n${parts.map((p) => "    " + p).join("\n")}\n  </workout>\n</workout_file>`;
+}
+function crc32(bytes) {
+  let table = crc32.t;
+  if (!table) {
+    table = crc32.t = [];
+    for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; table[n] = c >>> 0; }
+  }
+  let crc = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) crc = table[(crc ^ bytes[i]) & 255] ^ (crc >>> 8);
+  return (crc ^ 0xffffffff) >>> 0;
+}
+// Minimal ZIP writer (stored, no compression) so a whole week downloads as ONE file;
+// browsers block several automatic downloads in a row.
+function makeZip(files) {
+  const enc = new TextEncoder();
+  const u16 = (n) => [n & 255, (n >> 8) & 255];
+  const u32 = (n) => [n & 255, (n >> 8) & 255, (n >> 16) & 255, (n >>> 24) & 255];
+  const chunks = [], central = [];
+  let offset = 0;
+  files.forEach((f) => {
+    const nameB = enc.encode(f.name), data = enc.encode(f.content), crc = crc32(data), len = data.length;
+    const header = new Uint8Array([0x50, 0x4b, 3, 4, ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(crc), ...u32(len), ...u32(len), ...u16(nameB.length), ...u16(0)]);
+    chunks.push(header, nameB, data);
+    central.push(new Uint8Array([0x50, 0x4b, 1, 2, ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(crc), ...u32(len), ...u32(len), ...u16(nameB.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(offset)]), nameB);
+    offset += header.length + nameB.length + len;
+  });
+  const cdSize = central.reduce((s, c) => s + c.length, 0);
+  const end = new Uint8Array([0x50, 0x4b, 5, 6, 0, 0, 0, 0, ...u16(files.length), ...u16(files.length), ...u32(cdSize), ...u32(offset), 0, 0]);
+  return new Blob([...chunks, ...central, end], { type: "application/zip" });
+}
+function downloadFile(filename, content, mime) {
+  const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function slugify(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""); }
+function plannedTSS(day) {
+  if (day.d === 0) return 0;
+  const ifactor = ZONE_IF[day.z] ?? 0.62;
+  return (day.d / 60) * ifactor * ifactor * 100 * CALIBRATION_SCALE;
+}
+function matchActual(dateKey, plannedMin) {
+  const rides = RAW.filter((r) => r.date === dateKey);
+  const actualMin = Math.round(rides.reduce((s, r) => s + r.hrs * 60, 0));
+  let verdict;
+  if (plannedMin === 0) verdict = rides.length > 0 ? "bonus" : "rest";
+  else if (rides.length === 0) verdict = "missed";
+  else if (actualMin < plannedMin * 0.7) verdict = "partial";
+  else if (actualMin > plannedMin * 1.6) verdict = "exceeded";
+  else verdict = "matched";
+  return { rides, actualMin, verdict };
+}
+function buildAdaptivePlan(startCtl, startAtl) {
+  let ctl = startCtl, atl = startAtl;
+  let prevVerdict = null;
+  let prevWasHard = false; // whether that last completed session was a hard one (Z4-Z6 or threshold)
+  let lastSkipKey = null; // most recent day you declared skipped. The fitness model can't see WHY you skipped (poor sleep, illness), so its "you're fresh" reading is unreliable for a few days after.
+  let reactiveApplied = false;
+  const result = [];
+  WEEKS.forEach((w, wi) => {
+    const weekOut = [];
+    w.days.forEach((orig, di) => {
+      const dateKey = dateKeyFor(wi, di);
+      const skipReason = SKIPPED_DAYS[dateKey];
+      if (dateKey <= TODAY_DATE || (skipReason && orig.d > 0)) {
+        let compliance = matchActual(dateKey, orig.d);
+        const skipped = !!skipReason && orig.d > 0 && compliance.verdict === "missed";
+        if (skipped) compliance = { ...compliance, verdict: "skipped" };
+        const hist = dateKey <= TODAY_DATE ? fitnessEnteringOn(dateKey) : { ctl, atl };
+        const tsbEntering = +(hist.ctl - hist.atl).toFixed(1);
+        if (skipped) lastSkipKey = dateKey;
+        if (dateKey > TODAY_DATE) { // beyond the synced data: a declared skip means no training that day
+          ctl = ctl + (0 - ctl) / 42;
+          atl = atl + (0 - atl) / 7;
+        }
+        if (orig.d > 0) { // rest days do not count for this signal
+          prevVerdict = compliance.verdict;
+          prevWasHard = ["Z4", "Z5", "Z6"].includes(orig.z) || /Threshold/.test(orig.t);
+        }
+        weekOut.push({ dateKey, day: orig, orig, adjust: null, tsbBefore: tsbEntering, fit: +hist.ctl.toFixed(1), fat: +hist.atl.toFixed(1), completed: true, skipped, compliance });
+        return;
+      }
+      const tsbBefore = ctl - atl;
+      const fitBefore = ctl, fatBefore = atl;
+      const isStageSim = /Stage-Sim|STAGE/.test(orig.t);
+      const isHard = ["Z5", "Z6"].includes(orig.z) || /Threshold/.test(orig.t);
+      const isEasySlot = ["Z1", "Z2"].includes(orig.z) && orig.d > 0 && !isStageSim;
+      const isRealTrainingDay = orig.d > 0 && orig.z !== "Race" && !isStageSim;
+      const recentSkip = lastSkipKey !== null && daysBetween(lastSkipKey, dateKey) <= 3; // no adding intensity right after a declared skip
+      let day = orig, adjust = null;
+      if (!reactiveApplied && orig.d > 0) {
+        reactiveApplied = true; // the nudge is for the very next training day only - used up whether or not it fires
+        if (!PLAN_LOCKS[dateKey] && !orig.keep && isRealTrainingDay && prevVerdict === "exceeded") {
+          day = { t: orig.t, d: Math.round(orig.d * 0.75), z: orig.z, desc: "Eased about 25%: your last ride ran well over what was planned, so today gives a bit back to help you absorb it." };
+          adjust = "compliance-eased";
+          reactiveApplied = true;
+        } else if (!PLAN_LOCKS[dateKey] && !orig.keep && isRealTrainingDay && prevVerdict === "missed" && prevWasHard && isEasySlot && orig.d >= 45 && tsbBefore > -15) {
+          day = { t: orig.t, d: orig.d, z: "Z4", desc: "Bumped up: you missed your last hard session and aren't overly fatigued, so today picks up some of that lost stimulus instead of staying pure endurance." };
+          adjust = "compliance-added";
+          reactiveApplied = true;
+        }
+      }
+      if (!adjust && !PLAN_LOCKS[dateKey] && !orig.keep) {
+        if (isHard && !isStageSim && tsbBefore < -25) {
+          day = { t: orig.t, d: Math.round(orig.d * 0.7), z: "Z1", desc: `Auto-eased from ${orig.z}: projected form is ${tsbBefore.toFixed(0)} on this day, too fatigued for quality work. Easy recovery spin instead.` };
+          adjust = "eased";
+        } else if (!recentSkip && isEasySlot && tsbBefore > 15 && orig.d >= 60) {
+          day = { t: orig.t, d: orig.d, z: "Z4", desc: `Auto-added intensity: projected form is +${tsbBefore.toFixed(0)} on this day, fresh enough to add threshold work instead of pure endurance.` };
+          adjust = "added";
+        }
+      }
+      if (orig.gym) day = { ...day, gym: orig.gym };
+      const tss = plannedTSS(day) + (orig.gym ? GYM_TSS : 0);
+      ctl = ctl + (tss - ctl) / 42;
+      atl = atl + (tss - atl) / 7;
+      weekOut.push({ dateKey, day, orig, adjust, tsbBefore: +tsbBefore.toFixed(1), fit: +fitBefore.toFixed(1), fat: +fatBefore.toFixed(1), completed: false });
+    });
+    result.push(weekOut);
+  });
+  return result;
+}
+
+/* ============ LIGHTWEIGHT CHARTS (no external chart lib) ============ */
+function StackedBarChart({ data }) {
+  const max = Math.max(1, ...data.map((d) => d.outdoor + d.indoor));
+  const H = 200;
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: H + 24, borderBottom: "1px solid #2A2E33" }}>
+      {data.map((d, i) => {
+        const total = d.outdoor + d.indoor;
+        const outdoorH = (d.outdoor / max) * H;
+        const indoorH = (d.indoor / max) * H;
+        return (
+          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: H + 24 }}>
+            <div title={total.toFixed(1) + "h, " + d.rides + " rides"} style={{ width: "70%", maxWidth: 28, display: "flex", flexDirection: "column-reverse" }}>
+              <div style={{ height: outdoorH, background: "#E8A33D", borderRadius: indoorH ? "0" : "3px 3px 0 0" }} />
+              <div style={{ height: indoorH, background: "#4A6FA5", borderRadius: "3px 3px 0 0" }} />
+            </div>
+            <div className="hub-mono" style={{ fontSize: 9, color: "#8B8D91", marginTop: 4 }}>{d.label}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+function SimpleBarChart({ data, color }) {
+  const max = Math.max(1, ...data.map((d) => d.km));
+  const H = 180;
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: H + 24, borderBottom: "1px solid #2A2E33" }}>
+      {data.map((d, i) => (
+        <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: H + 24 }}>
+          <div className="hub-mono" style={{ fontSize: 10, color: "#F4F2ED", marginBottom: 4 }}>{d.km}</div>
+          <div title={d.km + "km"} style={{ width: "60%", maxWidth: 34, height: (d.km / max) * H, background: color, borderRadius: "4px 4px 0 0" }} />
+          <div className="hub-mono" style={{ fontSize: 9, color: "#8B8D91", marginTop: 4 }}>{d.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+function PMCChart({ data }) {
+  const W = 680, H = 220, pad = 8;
+  const maxV = Math.max(1, ...data.map((d) => Math.max(d.ctl, d.atl)));
+  const minTsb = Math.min(0, ...data.map((d) => d.tsb));
+  const maxTsb = Math.max(1, ...data.map((d) => d.tsb));
+  const x = (i) => pad + (i / (data.length - 1)) * (W - pad * 2);
+  const yLine = (v) => H - pad - (v / maxV) * (H - pad * 2 - 30);
+  const yBar = (v) => 30 - ((v - minTsb) / (maxTsb - minTsb)) * 26;
+  const path = (key) => data.map((d, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(1)} ${yLine(d[key]).toFixed(1)}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: 260 }}>
+      <line x1={pad} y1={H - pad} x2={W - pad} y2={H - pad} stroke="#2A2E33" />
+      {data.map((d, i) => (i % 3 === 0 ? <rect key={i} x={x(i) - 1.2} y={30 + Math.min(0, yBar(d.tsb) - 30)} width={2.4} height={Math.abs(yBar(d.tsb) - 30)} fill={d.tsb >= 0 ? "#3A3D42" : "#C6432C"} opacity={0.5} /> : null))}
+      <path d={path("ctl")} fill="none" stroke="#4A6FA5" strokeWidth={2} />
+      <path d={path("atl")} fill="none" stroke="#E0692F" strokeWidth={2} />
+    </svg>
+  );
+}
+
+/* ============ SHARED UI ============ */
+function TopBar({ title, sub, onHome, onRefresh, showHome, backLabel }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
+      <div>
+        {showHome && <button className="hub-navbtn" onClick={onHome} style={{ marginBottom: 10 }}>{ICON.back} {backLabel || "Home"}</button>}
+        <h1 className="hub-display" style={{ fontSize: 26, fontWeight: 700, margin: 0, color: "#F4F2ED" }}>{title}</h1>
+        <div style={{ color: "#8B8D91", fontSize: 13, marginTop: 4 }}>{sub}</div>
+      </div>
+      <button className="hub-navbtn" onClick={onRefresh}>{ICON.refresh} Data synced {LAST_SYNCED}</button>
+    </div>
+  );
+}
+function RefreshNote({ onClose }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 }} onClick={onClose}>
+      <div className="hub-card" style={{ maxWidth: 380, padding: 20 }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div className="hub-display" style={{ fontWeight: 600, fontSize: 15, color: "#F4F2ED" }}>Refreshing data</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8D91", cursor: "pointer" }}>{ICON.close}</button>
+        </div>
+        <div style={{ fontSize: 13, color: "#8B8D91", lineHeight: 1.5 }}>This file can't reach Strava on its own. To pull fresh data, ask Claude in chat:</div>
+        <div className="hub-mono" style={{ fontSize: 12, background: "#15171A", border: "1px solid #2A2E33", borderRadius: 8, padding: "10px 12px", marginTop: 10, color: "#E8A33D" }}>"refresh my dashboard"</div>
+        <div style={{ fontSize: 12, color: "#5C5F63", marginTop: 10, lineHeight: 1.5 }}>Claude will pull the latest rides and hand you an updated file to replace this one.</div>
+      </div>
+    </div>
+  );
+}
+
+function WorkoutModal({ day, weekLabel, ftp, setFtp, onClose }) {
+  const workout = useMemo(() => generateWorkout(day), [day]);
+  if (!workout) return null;
+  const w = (pct) => wattsFromPct(pct, ftp);
+  const label = `${weekLabel} \u2014 ${day.t}`;
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 60, padding: 20 }} onClick={onClose}>
+      <div className="hub-card" style={{ maxWidth: 460, width: "100%", padding: 22, maxHeight: "85vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+          <div className="hub-display" style={{ fontWeight: 700, fontSize: 17, color: "#F4F2ED" }}>{day.t}</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8D91", cursor: "pointer" }}>{ICON.close}</button>
+        </div>
+        <div style={{ fontSize: 12, color: "#8B8D91", marginBottom: 4 }}>{weekLabel} &middot; {workout.plannedMin}min total</div>
+        <div style={{ fontSize: 13, color: "#8B8D91", marginBottom: 16, lineHeight: 1.4 }}>{day.desc}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#15171A", border: "1px solid #2A2E33", borderRadius: 8, padding: "8px 12px", marginBottom: 16 }}>
+          <span className="hub-mono" style={{ fontSize: 11, color: "#8B8D91" }}>FTP</span>
+          <input type="number" value={ftp} onChange={(e) => setFtp(Math.max(1, parseInt(e.target.value, 10) || 0))} className="hub-mono" style={{ width: 64, background: "#1D2023", border: "1px solid #2A2E33", borderRadius: 6, color: "#F4F2ED", padding: "4px 6px", fontSize: 13 }} />
+          <span className="hub-mono" style={{ fontSize: 11, color: "#8B8D91" }}>W</span>
+          <span style={{ fontSize: 11, color: "#5C5F63", marginLeft: "auto" }}>watts below update live</span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {workout.warmup && (
+            <div style={{ background: "#15171A", border: "1px solid #2A2E33", borderRadius: 8, padding: "10px 12px" }}>
+              <div className="hub-display" style={{ fontSize: 12, fontWeight: 600, color: "#8B8D91" }}>WARM-UP &mdash; {workout.warmup.min}min</div>
+              <div className="hub-mono" style={{ fontSize: 14, color: "#F4F2ED", marginTop: 3 }}>{workout.warmup.pctLow}&ndash;{workout.warmup.pctHigh}% FTP <span style={{ color: "#8B8D91" }}>({w(workout.warmup.pctLow)}&ndash;{w(workout.warmup.pctHigh)}W)</span></div>
+            </div>
+          )}
+          {workout.type === "interval" ? (
+            <div style={{ background: "#15171A", border: "1px solid #E8A33D", borderRadius: 8, padding: "10px 12px" }}>
+              <div className="hub-display" style={{ fontSize: 12, fontWeight: 600, color: "#E8A33D" }}>MAIN SET &mdash; {workout.reps} x [{workout.workSec}s work / {workout.restSec}s easy]</div>
+              <div style={{ display: "flex", gap: 20, marginTop: 6 }}>
+                <div>
+                  <div className="hub-mono" style={{ fontSize: 15, color: "#F4F2ED" }}>{workout.workPct}% FTP <span style={{ color: "#8B8D91", fontSize: 12 }}>({w(workout.workPct)}W)</span></div>
+                  <div style={{ fontSize: 11, color: "#8B8D91" }}>work &mdash; {workout.workSec}s</div>
+                </div>
+                <div>
+                  <div className="hub-mono" style={{ fontSize: 15, color: "#4A6FA5" }}>{workout.restPct}% FTP <span style={{ color: "#8B8D91", fontSize: 12 }}>({w(workout.restPct)}W)</span></div>
+                  <div style={{ fontSize: 11, color: "#8B8D91" }}>easy &mdash; {workout.restSec}s</div>
+                </div>
+              </div>
+              {workout.fillMin > 0 && (<div style={{ fontSize: 11, color: "#5C5F63", marginTop: 8 }}>+ {workout.fillMin}min easy extension @ {workout.fillPct}% FTP ({w(workout.fillPct)}W) to round out the planned duration.</div>)}
+            </div>
+          ) : (
+            <div style={{ background: "#15171A", border: "1px solid #4A6FA5", borderRadius: 8, padding: "10px 12px" }}>
+              <div className="hub-display" style={{ fontSize: 12, fontWeight: 600, color: "#4A6FA5" }}>MAIN SET &mdash; {workout.mainMin}min steady</div>
+              <div className="hub-mono" style={{ fontSize: 15, color: "#F4F2ED", marginTop: 3 }}>{workout.pctLow}&ndash;{workout.pctHigh}% FTP <span style={{ color: "#8B8D91", fontSize: 12 }}>({w(workout.pctLow)}&ndash;{w(workout.pctHigh)}W)</span></div>
+            </div>
+          )}
+          {workout.cooldown && (
+            <div style={{ background: "#15171A", border: "1px solid #2A2E33", borderRadius: 8, padding: "10px 12px" }}>
+              <div className="hub-display" style={{ fontSize: 12, fontWeight: 600, color: "#8B8D91" }}>COOL-DOWN &mdash; {workout.cooldown.min}min</div>
+              <div className="hub-mono" style={{ fontSize: 14, color: "#F4F2ED", marginTop: 3 }}>{workout.cooldown.pctHigh}&ndash;{workout.cooldown.pctLow}% FTP <span style={{ color: "#8B8D91" }}>({w(workout.cooldown.pctHigh)}&ndash;{w(workout.cooldown.pctLow)}W)</span></div>
+            </div>
+          )}
+        </div>
+        <button onClick={() => downloadFile(`${slugify(label)}.zwo`, toZwoXml(day, workout, label), "application/xml")} className="hub-navbtn" style={{ width: "100%", justifyContent: "center", marginTop: 18, padding: "10px" }}>
+          {ICON.refresh} Export as .zwo
+        </button>
+        <div style={{ fontSize: 11, color: "#5C5F63", marginTop: 10, lineHeight: 1.4 }}>Structure is generated from this session's title and description, not hand-written per workout &mdash; explicit intervals ("8x1min" etc.) are parsed directly; everything else falls back to one steady block at the zone's typical intensity. Powers are stored as %FTP, so this stays correct even after your FTP changes &mdash; in TrainingPeaks too, once imported.</div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ HOME ============ */
+function Home({ goTo }) {
+  const thisWeekHrs = useMemo(() => { const wk = getWeekStart(REAL_TODAY); return (+RAW.filter((r) => getWeekStart(r.date) === wk).reduce((s, r) => s + r.hrs, 0)).toFixed(1); }, []);
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#E8A33D", fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>
+        <span>{ICON.sunrise}</span><span>Dawn Patrol</span>
+      </div>
+      <h1 className="hub-display" style={{ fontSize: 28, fontWeight: 700, margin: "0 0 4px", color: "#F4F2ED" }}>Frank's Training Hub</h1>
+      <div style={{ color: "#8B8D91", fontSize: 13, marginBottom: 26 }}>Singapore &middot; data synced {LAST_SYNCED}</div>
+      <div className="hub-home-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div className="hub-card hub-home-card" style={{ padding: 22 }} onClick={() => goTo("dashboard")}>
+          <span style={{ fontSize: 22 }}>{ICON.activity}</span>
+          <div className="hub-display" style={{ fontWeight: 700, fontSize: 18, color: "#F4F2ED", marginTop: 12 }}>Fitness Dashboard</div>
+          <div style={{ fontSize: 12, color: "#8B8D91", marginTop: 6, lineHeight: 1.5 }}>Weekly / monthly / quarterly volume, power zones, and your recent ride log.</div>
+          <div className="hub-mono" style={{ fontSize: 12, color: "#E8A33D", marginTop: 14 }}>{thisWeekHrs}h this week &rarr;</div>
+        </div>
+        <div className="hub-card hub-home-card" style={{ padding: 22 }} onClick={() => goTo("plan")}>
+          <span style={{ fontSize: 22 }}>{ICON.flag}</span>
+          <div className="hub-display" style={{ fontWeight: 700, fontSize: 18, color: "#F4F2ED", marginTop: 12 }}>Training Plan</div>
+          <div style={{ fontSize: 12, color: "#8B8D91", marginTop: 6, lineHeight: 1.5 }}>
+            Maintain and build &mdash; two gym sessions, group rides and easy days kept easy.
+          </div>
+          <div className="hub-mono" style={{ fontSize: 12, color: "#E8A33D", marginTop: 14 }}>Open plan &rarr;</div>
+        </div>
+        <div className="hub-card hub-home-card" style={{ padding: 22 }} onClick={() => goTo("archive")}>
+          <span style={{ fontSize: 22 }}>{ICON.mountain}</span>
+          <div className="hub-display" style={{ fontWeight: 700, fontSize: 18, color: "#F4F2ED", marginTop: 12 }}>Race Archive</div>
+          <div style={{ fontSize: 12, color: "#8B8D91", marginTop: 6, lineHeight: 1.5 }}>
+            Cape to Cape and the Singapore Crit &mdash; plans and strategy, kept to look back on.
+          </div>
+          <div className="hub-mono" style={{ fontSize: 12, color: "#E8A33D", marginTop: 14 }}>2 races &rarr;</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ DASHBOARD VIEW ============ */
+function DashboardView({ goHome, openRefresh }) {
+  const [tab, setTab] = useState("weekly");
+  const weekly = useMemo(() => {
+    const map = new Map();
+    RAW.forEach((r) => {
+      const wk = getWeekStart(r.date);
+      if (!map.has(wk)) map.set(wk, { week: wk, outdoor: 0, indoor: 0, km: 0, elev: 0, rides: 0 });
+      const w = map.get(wk);
+      if (r.sport === "VirtualRide") w.indoor += r.hrs; else w.outdoor += r.hrs;
+      w.km += r.km; w.elev += r.elev; w.rides += 1;
+    });
+    return Array.from(map.values()).sort((a, b) => (a.week > b.week ? 1 : -1)).map((w) => ({ ...w, label: fmtShort(w.week), outdoor: +w.outdoor.toFixed(1), indoor: +w.indoor.toFixed(1), km: Math.round(w.km) }));
+  }, []);
+  const monthly = useMemo(() => {
+    const map = new Map();
+    RAW.forEach((r) => {
+      const mk = r.date.slice(0, 7);
+      if (!map.has(mk)) map.set(mk, { month: mk, km: 0, hrs: 0, elev: 0, rides: 0 });
+      const m = map.get(mk); m.km += r.km; m.hrs += r.hrs; m.elev += r.elev; m.rides += 1;
+    });
+    return Array.from(map.values()).sort((a, b) => (a.month > b.month ? 1 : -1)).map((m) => ({ ...m, label: fmtMonth(m.month + "-01"), km: Math.round(m.km), hrs: +m.hrs.toFixed(1), elev: Math.round(m.elev) }));
+  }, []);
+  const quarter = useMemo(() => ({ km: Math.round(RAW.reduce((s, r) => s + r.km, 0)), hrs: +RAW.reduce((s, r) => s + r.hrs, 0).toFixed(0), elev: Math.round(RAW.reduce((s, r) => s + r.elev, 0)), rides: RAW.length }), []);
+  const pmc = useMemo(() => {
+    const byDate = new Map();
+    RAW.forEach((r) => { const tss = estimateTSS(r.hrs, estimateIF(r.name, r.sport)); byDate.set(r.date, (byDate.get(r.date) || 0) + tss); });
+    const dates = RAW.map((r) => r.date).sort();
+    const cur = new Date(dates[0] + "T00:00:00");
+    const end = new Date("2026-11-05T00:00:00");
+    let ctl = 0, atl = 0;
+    const series = [];
+    while (cur <= end) {
+      const key = ymdLocal(cur);
+      const tss = byDate.get(key) || 0;
+      ctl = ctl + (tss - ctl) / 42;
+      atl = atl + (tss - atl) / 7;
+      series.push({ date: key, label: fmtShort(key), tss: Math.round(tss), ctl: +ctl.toFixed(1), atl: +atl.toFixed(1), tsb: +(ctl - atl).toFixed(1) });
+      cur.setDate(cur.getDate() + 1);
+    }
+    return series;
+  }, []);
+  const todayPmc = pmc[pmc.length - 1];
+  const latestWeek = weekly[weekly.length - 1], priorWeek = weekly[weekly.length - 2];
+  const thisWeek = weekly.find((w) => w.week === getWeekStart(REAL_TODAY)) || { outdoor: 0, indoor: 0, rides: 0 };
+  const thisWeekTotal = (thisWeek.outdoor + thisWeek.indoor).toFixed(1);
+  const streak = useMemo(() => { const days = new Set(RAW.map((r) => r.date)); let count = 0; let cur = new Date("2026-11-05T00:00:00"); while (true) { const key = ymdLocal(cur); if (days.has(key)) { count++; cur.setDate(cur.getDate() - 1); } else break; } return count; }, []);
+  const recent = RAW.slice(0, 12);
+
+  return (
+    <div>
+      <TopBar title="Fitness Dashboard" sub="Volume & power, last 13 weeks" onHome={goHome} onRefresh={openRefresh} showHome />
+      <div className="hub-hero-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 24 }}>
+        {[{ icon: ICON.zap, label: "FTP", val: `${FTP}`, unit: "W" }, { icon: ICON.gauge, label: "VO2max (est.)", val: "50\u201351", unit: "" }, { icon: ICON.timer, label: "This week", val: thisWeekTotal, unit: "hrs" }, { icon: ICON.bike, label: "This week", val: thisWeek ? thisWeek.rides : "\u2014", unit: "rides" }, { icon: ICON.flame, label: "Current streak", val: streak, unit: "days" }].map((c, i) => (
+          <div key={i} className="hub-card" style={{ padding: "14px 12px" }}>
+            <span style={{ fontSize: 16 }}>{c.icon}</span>
+            <div className="hub-mono" style={{ fontSize: 22, fontWeight: 600, marginTop: 8, color: "#F4F2ED" }}>{c.val}<span style={{ fontSize: 12, color: "#8B8D91", marginLeft: 3 }}>{c.unit}</span></div>
+            <div style={{ fontSize: 11, color: "#8B8D91", marginTop: 2 }}>{c.label}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8, background: "#1D2023", border: "1px solid #2A2E33", borderRadius: 999, padding: 4, marginBottom: 18, width: "fit-content" }}>
+        {["weekly", "monthly", "fitness", "power", "log"].map((t) => (
+          <button key={t} className={`hub-tab ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>{t === "weekly" ? "Weekly" : t === "monthly" ? "Monthly" : t === "fitness" ? "Fitness/Form" : t === "power" ? "Power & Zones" : "Recent Rides"}</button>
+        ))}
+      </div>
+      {tab === "weekly" && (
+        <div className="hub-card" style={{ padding: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div><div className="hub-display" style={{ fontWeight: 600, fontSize: 15, color: "#F4F2ED" }}>Weekly volume &mdash; last {weekly.length} weeks</div><div style={{ fontSize: 12, color: "#8B8D91" }}>Amber = outdoor, blue = Zwift. Hover a bar for detail.</div></div>
+            {priorWeek && latestWeek && <div style={{ fontSize: 12, color: (latestWeek.outdoor + latestWeek.indoor) >= (priorWeek.outdoor + priorWeek.indoor) ? "#3F9C8B" : "#C6432C" }}>{(latestWeek.outdoor + latestWeek.indoor) >= (priorWeek.outdoor + priorWeek.indoor) ? "\u2191" : "\u2193"} vs {(priorWeek.outdoor + priorWeek.indoor).toFixed(1)}hrs the week before</div>}
+          </div>
+          <StackedBarChart data={weekly} />
+        </div>
+      )}
+      {tab === "monthly" && (
+        <div>
+          <div className="hub-monthly-grid" style={{ display: "grid", gridTemplateColumns: `repeat(${monthly.length + 1}, 1fr)`, gap: 10, marginBottom: 14 }}>
+            {monthly.map((m, i) => (<div key={i} className="hub-card" style={{ padding: 14 }}><div className="hub-display" style={{ color: "#E8A33D", fontWeight: 600, fontSize: 13 }}>{m.label}</div><div className="hub-mono" style={{ fontSize: 20, fontWeight: 600, marginTop: 6 }}>{m.km}<span style={{ fontSize: 11, color: "#8B8D91" }}> km</span></div><div style={{ fontSize: 11, color: "#8B8D91", marginTop: 4 }}>{m.hrs} hrs &middot; {m.rides} rides &middot; {m.elev}m climb</div></div>))}
+            <div className="hub-card" style={{ padding: 14, borderColor: "#E8A33D" }}><div className="hub-display" style={{ color: "#F4F2ED", fontWeight: 600, fontSize: 13 }}>Quarter</div><div className="hub-mono" style={{ fontSize: 20, fontWeight: 600, marginTop: 6 }}>{quarter.km}<span style={{ fontSize: 11, color: "#8B8D91" }}> km</span></div><div style={{ fontSize: 11, color: "#8B8D91", marginTop: 4 }}>{quarter.hrs} hrs &middot; {quarter.rides} rides &middot; {quarter.elev}m climb</div></div>
+          </div>
+          <div className="hub-card" style={{ padding: 18 }}><div className="hub-display" style={{ fontWeight: 600, fontSize: 15, color: "#F4F2ED", marginBottom: 14 }}>Distance by month</div><SimpleBarChart data={monthly} color="#E8A33D" /></div>
+        </div>
+      )}
+      {tab === "fitness" && (
+        <div>
+          <div className="hub-hero-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 14 }}>
+            <div className="hub-card" style={{ padding: 14 }}>
+              <div style={{ fontSize: 11, color: "#8B8D91", textTransform: "uppercase", letterSpacing: "0.04em" }}>Fitness (CTL)</div>
+              <div className="hub-mono" style={{ fontSize: 26, fontWeight: 600, color: "#4A6FA5", marginTop: 6 }}>{todayPmc.ctl}</div>
+            </div>
+            <div className="hub-card" style={{ padding: 14 }}>
+              <div style={{ fontSize: 11, color: "#8B8D91", textTransform: "uppercase", letterSpacing: "0.04em" }}>Fatigue (ATL)</div>
+              <div className="hub-mono" style={{ fontSize: 26, fontWeight: 600, color: "#E0692F", marginTop: 6 }}>{todayPmc.atl}</div>
+            </div>
+            <div className="hub-card" style={{ padding: 14 }}>
+              <div style={{ fontSize: 11, color: "#8B8D91", textTransform: "uppercase", letterSpacing: "0.04em" }}>Form (TSB)</div>
+              <div className="hub-mono" style={{ fontSize: 26, fontWeight: 600, color: tsbLabel(todayPmc.tsb).color, marginTop: 6 }}>{todayPmc.tsb > 0 ? "+" : ""}{todayPmc.tsb}</div>
+              <div style={{ fontSize: 11, color: tsbLabel(todayPmc.tsb).color, marginTop: 2 }}>{tsbLabel(todayPmc.tsb).text}</div>
+            </div>
+          </div>
+          <div className="hub-card" style={{ padding: 18, marginBottom: 14 }}>
+            <div className="hub-display" style={{ fontWeight: 600, fontSize: 15, color: "#F4F2ED", marginBottom: 4 }}>Fitness, Fatigue &amp; Form</div>
+            <div style={{ fontSize: 12, color: "#8B8D91", marginBottom: 14 }}>Blue = Fitness, orange = Fatigue, bars = Form. {pmc.length}-day trend.</div>
+            <PMCChart data={pmc} />
+          </div>
+          <div style={{ fontSize: 11, color: "#5C5F63", lineHeight: 1.5 }}>
+            Calibrated, not exact: each ride's stress score is estimated from its workout name/type and duration (checked against 4 real power pulls spanning tempo, VO2, technical MTB, and easy-spin sessions), then scaled by 1.76x so today's numbers land on your real TrainingPeaks reading. With TrainingPeaks and Strava both on FTP 260, that factor is almost entirely Garmin reading higher power than Strava for your setup, not an FTP mismatch. Treat the trend as a good approximation, not TrainingPeaks-exact day to day.
+          </div>
+        </div>
+      )}
+      {tab === "power" && (
+        <div>
+          <div className="hub-card" style={{ padding: 18, marginBottom: 14 }}>
+            <div className="hub-display" style={{ fontWeight: 600, fontSize: 15, color: "#F4F2ED", marginBottom: 4 }}>Power zones &mdash; FTP {FTP}W</div>
+            <div style={{ fontSize: 12, color: "#8B8D91", marginBottom: 14 }}>Manually set, not estimated</div>
+            {POWER_ZONES.map((z, i) => (<div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0", borderTop: i > 0 ? "1px solid #2A2E33" : "none" }}><div style={{ width: 10, height: 10, borderRadius: "50%", background: z.color, flexShrink: 0 }} /><div className="hub-mono" style={{ width: 34, fontSize: 12, color: "#8B8D91" }}>{z.z}</div><div style={{ flex: 1, fontSize: 13, color: "#E8E6E1" }}>{z.label}</div><div className="hub-mono" style={{ fontSize: 13, color: "#F4F2ED" }}>{z.range}</div><div style={{ width: 70, textAlign: "right", fontSize: 12, color: "#8B8D91" }}>{z.pct}</div></div>))}
+          </div>
+          <div className="hub-card" style={{ padding: 18, marginBottom: 14 }}>
+            <div className="hub-display" style={{ fontWeight: 600, fontSize: 15, color: "#F4F2ED", marginBottom: 4 }}>Recent power spot-checks</div>
+            <div style={{ fontSize: 12, color: "#8B8D91", marginBottom: 14 }}>Sampled from actual ride data</div>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>{SPOT_CHECKS.map((s, i) => (<div key={i} style={{ flex: "1 1 220px", background: "#15171A", border: "1px solid #2A2E33", borderRadius: 8, padding: 12 }}><div style={{ fontSize: 11, color: "#8B8D91" }}>{s.date} &middot; {s.name}</div><div style={{ display: "flex", gap: 16, marginTop: 8 }}><div><div className="hub-mono" style={{ fontSize: 18, fontWeight: 600, color: "#E8A33D" }}>{s.watts}W</div><div style={{ fontSize: 10, color: "#8B8D91" }}>{s.pctFtp}% FTP</div></div><div><div className="hub-mono" style={{ fontSize: 18, fontWeight: 600, color: "#4A6FA5" }}>{s.hr}</div><div style={{ fontSize: 10, color: "#8B8D91" }}>avg bpm</div></div></div><div style={{ fontSize: 11, color: "#3F9C8B", marginTop: 6 }}>{s.zone}</div></div>))}</div>
+          </div>
+          <div className="hub-card" style={{ padding: 18 }}><div className="hub-display" style={{ fontWeight: 600, fontSize: 15, color: "#F4F2ED", marginBottom: 12 }}>Heart-rate zones</div><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{HR_ZONES.map((z, i) => (<div key={i} className="hub-mono" style={{ fontSize: 12, background: "#15171A", border: "1px solid #2A2E33", borderRadius: 6, padding: "6px 10px" }}><span style={{ color: "#8B8D91" }}>{z.z}</span> {z.range}</div>))}</div></div>
+        </div>
+      )}
+      {tab === "log" && (
+        <div className="hub-card" style={{ padding: 4 }}>
+          <div style={{ padding: "14px 16px 8px" }}><div className="hub-display" style={{ fontWeight: 600, fontSize: 15, color: "#F4F2ED" }}>Recent rides</div><div style={{ fontSize: 12, color: "#8B8D91" }}>Last {recent.length} activities</div></div>
+          <div style={{ overflowX: "auto" }}>
+            <table><thead><tr style={{ textAlign: "left", color: "#8B8D91", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em" }}><th style={{ padding: "8px 16px" }}>Date</th><th style={{ padding: "8px 16px" }}>Ride</th><th style={{ padding: "8px 16px" }}>Type</th><th style={{ padding: "8px 16px", textAlign: "right" }}>Distance</th><th style={{ padding: "8px 16px", textAlign: "right" }}>Time</th><th style={{ padding: "8px 16px", textAlign: "right" }}>Climb</th></tr></thead>
+              <tbody>{recent.map((r, i) => (<tr key={i} style={{ borderTop: "1px solid #2A2E33" }}><td className="hub-mono" style={{ padding: "10px 16px", color: "#8B8D91", whiteSpace: "nowrap" }}>{fmtShort(r.date)}</td><td style={{ padding: "10px 16px", color: "#E8E6E1" }}>{r.name}</td><td style={{ padding: "10px 16px" }}><span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: r.sport === "VirtualRide" ? "rgba(74,111,165,0.2)" : "rgba(232,163,61,0.2)", color: r.sport === "VirtualRide" ? "#4A6FA5" : "#E8A33D" }}>{r.sport === "VirtualRide" ? "Zwift" : "Outdoor"}</span></td><td className="hub-mono" style={{ padding: "10px 16px", textAlign: "right" }}>{r.km.toFixed(1)} km</td><td className="hub-mono" style={{ padding: "10px 16px", textAlign: "right" }}>{(r.hrs * 60).toFixed(0)} min</td><td className="hub-mono" style={{ padding: "10px 16px", textAlign: "right", color: "#8B8D91" }}>{r.elev}m</td></tr>))}</tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 22, fontSize: 11, color: "#5C5F63" }}><span>{ICON.activity}</span><span>Volume computed from all {quarter.rides} rides, synced through {LAST_SYNCED}. Power data is sampled, not every ride.</span></div>
+    </div>
+  );
+}
+
+/* ============ SHARED: today's form + adaptive plan ============ */
+function useTodayFormAndPlan() {
+  const todayForm = useMemo(() => {
+    const byDate = new Map();
+    RAW.forEach((r) => {
+      const tss = estimateTSS(r.hrs, estimateIF(r.name, r.sport));
+      byDate.set(r.date, (byDate.get(r.date) || 0) + tss);
+    });
+    const dates = RAW.map((r) => r.date).sort();
+    const cur = new Date(dates[0] + "T00:00:00");
+    const end = new Date(TODAY_DATE + "T00:00:00");
+    let ctl = 0, atl = 0;
+    while (cur <= end) {
+      const key = ymdLocal(cur);
+      const tss = byDate.get(key) || 0;
+      ctl = ctl + (tss - ctl) / 42;
+      atl = atl + (tss - atl) / 7;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return { ctl, atl };
+  }, []);
+  const adaptivePlan = useMemo(() => buildAdaptivePlan(todayForm.ctl, todayForm.atl), [todayForm]);
+  return { todayForm, adaptivePlan };
+}
+
+function fitnessEnteringOn(dateKey) {
+  // Actual Fitness (CTL) and Fatigue (ATL) at the start of a past day, replayed from the ride log.
+  const byDate = new Map();
+  RAW.forEach((r) => { byDate.set(r.date, (byDate.get(r.date) || 0) + estimateTSS(r.hrs, estimateIF(r.name, r.sport))); });
+  const dates = RAW.map((r) => r.date).sort();
+  const cur = new Date(dates[0] + "T00:00:00");
+  let ctl = 0, atl = 0;
+  while (ymdLocal(cur) < dateKey) {
+    const tss = byDate.get(ymdLocal(cur)) || 0;
+    ctl = ctl + (tss - ctl) / 42;
+    atl = atl + (tss - atl) / 7;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return { ctl, atl };
+}
+function formEnteringOn(dateKey) {
+  const h = fitnessEnteringOn(dateKey);
+  return +(h.ctl - h.atl).toFixed(1);
+}
+
+function ArchiveView({ goTo, goHome, openRefresh }) {
+  const critDone = REAL_TODAY > "2026-11-08";
+  const races = [
+    { key: "c2c", icon: <span style={{ fontSize: 22 }}>{ICON.mountain}</span>, name: "Cape to Cape MTB 2026", when: "Oct 15\u201318, 2026 \u00b7 Western Australia", status: "Finished", stats: "4 stages \u00b7 181.6 km \u00b7 3,791 m climbing \u00b7 10 h 48 riding (Strava)", pages: [["Training plan (W1\u20138)", "c2c-plan"], ["Stage strategy", "c2c-strategy"]] },
+    { key: "crit", icon: <span style={{ fontSize: 22 }}>{ICON.zap}</span>, name: "Singapore TdF EFGH Criterium", when: "Sun Nov 8, 2026 \u00b7 Singapore", status: critDone ? "Finished" : "Race day Nov 8", stats: "Recovery, sharpening and taper weeks plus race tactics", pages: [["Prep plan (W9\u201311)", "crit-plan"], ["Race strategy", "crit-strategy"]] },
+  ];
+  return (
+    <div>
+      <TopBar title="Race Archive" sub="Completed events &mdash; plans and strategy kept to look back on" onHome={goHome} onRefresh={openRefresh} showHome />
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {races.map((r) => (
+          <div key={r.key} className="hub-card" style={{ padding: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+              <div>
+                {r.icon}
+                <div className="hub-display" style={{ fontWeight: 700, fontSize: 18, color: "#F4F2ED", marginTop: 10 }}>{r.name}</div>
+                <div style={{ fontSize: 12, color: "#8B8D91", marginTop: 4 }}>{r.when}</div>
+              </div>
+              <span className="hub-mono" style={{ fontSize: 11, fontWeight: 700, color: "#15171A", background: r.status === "Finished" ? "#3F9C8B" : "#E8A33D", padding: "3px 8px", borderRadius: 4 }}>{r.status}</span>
+            </div>
+            <div style={{ fontSize: 12, color: "#8B8D91", marginTop: 10, lineHeight: 1.5 }}>{r.stats}</div>
+            <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+              {r.pages.map(([label, pg]) => (<button key={pg} className="hub-navbtn" onClick={() => goTo(pg)}>{label} &rarr;</button>))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============ CAPE TO CAPE STRATEGY VIEW ============ */
+function C2CStrategyView({ goHome, openRefresh }) {
+  const { adaptivePlan } = useTodayFormAndPlan();
+  const flat = useMemo(() => adaptivePlan.flat(), [adaptivePlan]);
+  const stageEntries = STAGES.map((s, i) => {
+    const planEntry = flat.find((x) => x.dateKey === STAGE_STRATEGY[i].dateKey);
+    return { stage: s, strategy: STAGE_STRATEGY[i], tsb: STAGE_STRATEGY[i].dateKey <= TODAY_DATE ? formEnteringOn(STAGE_STRATEGY[i].dateKey) : (planEntry ? planEntry.tsbBefore : null) };
+  });
+  return (
+    <div>
+      <TopBar title="Cape to Cape Strategy" sub={`Oct 15\u201318, 2026 \u00b7 completed \u00b7 stage-by-stage tactics and projected readiness`} onHome={goHome} onRefresh={openRefresh} showHome backLabel="Race Archive" />
+      <div className="hub-stagegrid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 24 }}>
+        {stageEntries.map(({ stage, tsb }) => {
+          const r = tsb !== null ? stageReadiness(tsb) : { text: "\u2014", color: "#8B8D91" };
+          return (
+            <div key={stage.n} className="hub-card" style={{ padding: 12 }}>
+              <div className="hub-mono" style={{ fontSize: 11, color: "#E8A33D" }}>STAGE {stage.n}</div>
+              <div className="hub-display" style={{ fontWeight: 600, fontSize: 12, color: "#F4F2ED", margin: "2px 0 8px" }}>{stage.date}</div>
+              <div className="hub-mono" style={{ fontSize: 18, fontWeight: 600, color: r.color }}>{tsb !== null ? (tsb > 0 ? "+" : "") + tsb : "\u2014"}</div>
+              <div style={{ fontSize: 10, color: r.color, marginTop: 2, lineHeight: 1.3 }}>{r.text}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {stageEntries.map(({ stage, strategy, tsb }) => {
+          const r = tsb !== null ? stageReadiness(tsb) : { text: "\u2014", color: "#8B8D91" };
+          return (
+            <div key={stage.n} className="hub-card" style={{ padding: 18 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 10 }}>
+                <div>
+                  <div className="hub-mono" style={{ fontSize: 11, color: "#E8A33D" }}>STAGE {stage.n} &middot; {stage.date}</div>
+                  <div className="hub-display" style={{ fontWeight: 700, fontSize: 16, color: "#F4F2ED", marginTop: 2 }}>{stage.name}</div>
+                  <div className="hub-mono" style={{ fontSize: 13, color: "#8B8D91", marginTop: 2 }}>{stage.km}km / {stage.elev}m climbing</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 10, color: "#8B8D91" }}>PROJECTED FORM ENTERING</div>
+                  <div className="hub-mono" style={{ fontSize: 20, fontWeight: 600, color: r.color }}>{tsb !== null ? (tsb > 0 ? "+" : "") + tsb : "\u2014"}</div>
+                  <div style={{ fontSize: 11, color: r.color }}>{r.text}</div>
+                </div>
+              </div>
+              <div style={{ fontSize: 11, color: "#5C5F63", marginBottom: 10, fontStyle: "italic" }}>{stage.note}</div>
+              <div style={{ fontSize: 13, color: "#E8E6E1", lineHeight: 1.55, marginBottom: 10 }}>{strategy.tactics}</div>
+              <div style={{ fontSize: 12, color: "#E0692F", background: "#15171A", border: "1px solid #2A2E33", borderRadius: 8, padding: "8px 12px" }}><strong>Watch for:</strong> {strategy.watchouts}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 20, fontSize: 11, color: "#5C5F63" }}>
+        <span>{ICON.trend}</span>
+        <span>Readiness numbers are projected from today's actual Fitness/Fatigue, run forward through your full training plan to each stage's real date &mdash; they'll shift as you train, so re-check after refreshing. Tactics are grounded in the official course descriptions, not generic race advice; technical-terrain risk notes reflect that your technical MTB mileage has been real but a minority of total training volume.</span>
+      </div>
+    </div>
+  );
+}
+
+/* ============ CRIT STRATEGY VIEW ============ */
+function CritStrategyView({ goHome, openRefresh }) {
+  const { todayForm, adaptivePlan } = useTodayFormAndPlan();
+  const flat = useMemo(() => adaptivePlan.flat(), [adaptivePlan]);
+  const critEntry = flat.find((x) => x.dateKey === NEXT_EVENT.date);
+  const tsb = NEXT_EVENT.date <= TODAY_DATE ? formEnteringOn(NEXT_EVENT.date) : (critEntry ? critEntry.tsbBefore : null);
+  const r = tsb !== null ? stageReadiness(tsb) : { text: "\u2014", color: "#8B8D91" };
+  const ctlNow = +todayForm.ctl.toFixed(1);
+  const ctlAtCrit = critEntry ? critEntry.ctl : null;
+  return (
+    <div>
+      <TopBar title="Crit Strategy" sub={`${NEXT_EVENT.venue} \u00b7 Sun Nov 8, 2026 \u00b7 ${DAYS_TO_CRIT > 0 ? DAYS_TO_CRIT + " days out" : "completed"}`} onHome={goHome} onRefresh={openRefresh} showHome backLabel="Race Archive" />
+      <div className="hub-card" style={{ padding: 18, marginBottom: 18 }}>
+        <div className="hub-display" style={{ fontWeight: 700, fontSize: 16, color: "#F4F2ED", marginBottom: 4 }}>{NEXT_EVENT.name}</div>
+        <div style={{ fontSize: 12, color: "#8B8D91", marginBottom: 10 }}>{NEXT_EVENT.format}</div>
+        <div style={{ fontSize: 12, color: "#5C5F63", background: "#15171A", border: "1px solid #2A2E33", borderRadius: 8, padding: "8px 12px" }}>{NEXT_EVENT.courseNote}</div>
+      </div>
+      <div className="hub-hero-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 18 }}>
+        <div className="hub-card" style={{ padding: 16 }}>
+          <div className="hub-display" style={{ fontWeight: 600, fontSize: 13, color: "#F4F2ED", marginBottom: 6 }}>Freshness</div>
+          <div className="hub-mono" style={{ fontSize: 24, fontWeight: 600, color: r.color }}>{tsb !== null ? (tsb > 0 ? "+" : "") + tsb : "\u2014"}</div>
+          <div style={{ fontSize: 12, color: r.color, marginTop: 2 }}>{r.text}</div>
+          <div style={{ fontSize: 11, color: "#5C5F63", marginTop: 8, lineHeight: 1.4 }}>Data-driven, projected from your real training through today. Crits reward exactly this &mdash; explosiveness over accumulated fatigue &mdash; so this level of freshness is well-suited to the event, not just incidentally high.</div>
+        </div>
+        <div className="hub-card" style={{ padding: 16 }}>
+          <div className="hub-display" style={{ fontWeight: 600, fontSize: 13, color: "#F4F2ED", marginBottom: 6 }}>Crit-Specific Conditioning</div>
+          <div className="hub-mono" style={{ fontSize: 24, fontWeight: 600, color: "#E8A33D" }}>Developing</div>
+          <div style={{ fontSize: 12, color: "#E8A33D", marginTop: 2 }}>Honest, not data-driven</div>
+          <div style={{ fontSize: 11, color: "#5C5F63", marginTop: 8, lineHeight: 1.4 }}>Fitness (CTL) at the crit projects to about {ctlAtCrit ?? "\u2014"}, versus {ctlNow} today &mdash; the bridge block is recovery and sharpening, not fitness-building. Your season has been endurance/climbing-focused, not pack-racing or repeated-sprint-focused. This, not freshness, is the real limiting factor.</div>
+        </div>
+      </div>
+      <div className="hub-card" style={{ padding: 18, marginBottom: 14 }}>
+        <div className="hub-display" style={{ fontWeight: 700, fontSize: 15, color: "#F4F2ED", marginBottom: 10 }}>Race tactics</div>
+        <div style={{ fontSize: 13, color: "#E8E6E1", lineHeight: 1.6, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div><strong style={{ color: "#F4F2ED" }}>Positioning over power.</strong> Crits are won and lost on position, not raw watts. Sit in the front third of the pack at all times &mdash; mid-pack or worse means burning matches just to close gaps that open ahead of you.</div>
+          <div><strong style={{ color: "#F4F2ED" }}>Expect surges, not steady power.</strong> The demand is repeated hard efforts out of every corner, not one sustained push. Your endurance base means you can probably out-repeat people on raw fatigue resistance &mdash; lean on that rather than trying to out-sprint dedicated crit specialists.</div>
+          <div><strong style={{ color: "#F4F2ED" }}>Corner discipline.</strong> Brake before the corner, not during it; carry a smooth, consistent line rather than diving for gaps. Match the speed of the wheel ahead instead of braking late and re-accelerating &mdash; that's where crit racers waste the most energy without realizing it.</div>
+          <div><strong style={{ color: "#F4F2ED" }}>Know your move.</strong> A decisive selection usually forms mid-race once the opening nervousness settles. Given your profile, a well-timed bridge to a strong move likely suits you better than saving everything for a bunch sprint against faster finishers.</div>
+          <div><strong style={{ color: "#F4F2ED" }}>If it's a group finish,</strong> the last 2&ndash;3 laps matter more than the sprint itself &mdash; fight for position early. Sprinting from 20th wheel loses to positioning from 5th every time, regardless of who has the bigger engine.</div>
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontSize: 11, color: "#5C5F63" }}>
+        <span>{ICON.trend}</span>
+        <span>The official course map and lap count weren't published as of the last check &mdash; tactics above are general crit principles, not tuned to this specific circuit. Worth revisiting once the route is announced. Freshness updates automatically with every refresh; conditioning is a judgment call, not something this dashboard measures directly.</span>
+      </div>
+    </div>
+  );
+}
+
+/* ============ PLAN VIEW ============ */
+function PlanView({ goHome, openRefresh, mode = "training" }) {
+  const RANGES = { c2c: [0, 7], crit: [8, 10], training: [11, WEEKS.length - 1] };
+  const [lo, hi] = RANGES[mode];
+  const inRange = (i) => i >= lo && i <= hi;
+  const [week, setWeek] = useState(Math.max(lo, Math.min(hi, CURRENT_WEEK_INDEX)));
+  const [ftp, setFtp] = useState(FTP);
+  const [openDay, setOpenDay] = useState(null);
+  const todayForm = useMemo(() => {
+    const byDate = new Map();
+    RAW.forEach((r) => { const tss = estimateTSS(r.hrs, estimateIF(r.name, r.sport)); byDate.set(r.date, (byDate.get(r.date) || 0) + tss); });
+    const dates = RAW.map((r) => r.date).sort();
+    const cur = new Date(dates[0] + "T00:00:00");
+    const end = new Date("2026-11-05T00:00:00");
+    let ctl = 0, atl = 0;
+    while (cur <= end) {
+      const key = ymdLocal(cur);
+      const tss = byDate.get(key) || 0;
+      ctl = ctl + (tss - ctl) / 42;
+      atl = atl + (tss - atl) / 7;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return { ctl, atl };
+  }, []);
+  const adaptivePlan = useMemo(() => buildAdaptivePlan(todayForm.ctl, todayForm.atl), [todayForm]);
+  const weeklyHours = useMemo(() => adaptivePlan.map((w) => +(w.reduce((s, x) => s + (x.skipped ? 0 : x.day.d), 0) / 60).toFixed(1)), [adaptivePlan]);
+  const totalAdjustments = useMemo(() => adaptivePlan.filter((_, i) => inRange(i)).flat().filter((x) => x.adjust).length, [adaptivePlan]);
+  const gaps = useMemo(() => {
+    const allDone = adaptivePlan.filter((_, i) => inRange(i)).flat().filter((x) => x.completed && x.day.d > 0);
+    const skipped = allDone.filter((x) => x.compliance.verdict === "skipped");
+    const completedDays = allDone.filter((x) => x.compliance.verdict !== "skipped");
+    const missed = completedDays.filter((x) => x.compliance.verdict === "missed");
+    const partial = completedDays.filter((x) => x.compliance.verdict === "partial");
+    const exceeded = completedDays.filter((x) => x.compliance.verdict === "exceeded");
+    const matched = completedDays.filter((x) => x.compliance.verdict === "matched" || x.compliance.verdict === "bonus");
+    const total = completedDays.length;
+    const rate = total > 0 ? Math.round(((total - missed.length) / total) * 100) : 100;
+    const hardMissed = missed.filter((x) => ["Z4", "Z5", "Z6"].includes(x.day.z) || /Threshold/.test(x.day.t));
+    return { missed, partial, exceeded, matched, skipped, total, rate, hardMissed };
+  }, [adaptivePlan]);
+  return (
+    <div>
+      <TopBar title={mode === "c2c" ? "Cape to Cape Plan" : mode === "crit" ? "Crit Prep Plan" : "Training Plan"} sub={mode === "c2c" ? `Oct 15\u201318, 2026 \u00b7 Completed \u00b7 4 stages, ${RACE_TOTAL.km.toFixed(1)}km, ${RACE_TOTAL.elev.toLocaleString()}m climbing` : mode === "crit" ? "Singapore TdF EFGH Criterium \u00b7 Sun Nov 8, 2026 \u00b7 recovery, sharpening and taper" : "Maintain and build \u00b7 2 gym sessions a week \u00b7 group rides Tue/Thu and Sat"} onHome={goHome} onRefresh={openRefresh} showHome backLabel={mode === "training" ? undefined : "Race Archive"} />
+      {mode === "c2c" && (<div className="hub-stagegrid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 24 }}>
+        {STAGES.map((s) => (<div key={s.n} className="hub-card" style={{ padding: 12 }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div className="hub-mono" style={{ fontSize: 11, color: "#E8A33D" }}>STAGE {s.n}</div><div style={{ fontSize: 10, color: "#5C5F63" }}>{s.date}</div></div><div className="hub-display" style={{ fontWeight: 600, fontSize: 13, margin: "4px 0 8px", color: "#F4F2ED" }}>{s.name}</div><div className="hub-mono" style={{ fontSize: 16, fontWeight: 600 }}>{s.km}km <span style={{ fontSize: 11, color: "#8B8D91", fontWeight: 400 }}>/ {s.elev}m</span></div><div style={{ fontSize: 11, color: "#8B8D91", marginTop: 6, lineHeight: 1.4 }}>{s.note}</div></div>))}
+      </div>)}
+      {mode === "training" && (<div className="hub-card" style={{ padding: "12px 16px", marginBottom: 18, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <span className="hub-mono" style={{ fontSize: 11, color: "#8B8D91" }}>TODAY'S FORM</span>
+        <span className="hub-mono" style={{ fontSize: 16, fontWeight: 600, color: tsbLabel(todayForm.ctl - todayForm.atl).color }}>{(todayForm.ctl - todayForm.atl) > 0 ? "+" : ""}{(todayForm.ctl - todayForm.atl).toFixed(1)}</span>
+        <span style={{ fontSize: 12, color: tsbLabel(todayForm.ctl - todayForm.atl).color }}>{tsbLabel(todayForm.ctl - todayForm.atl).text}</span>
+        <span style={{ fontSize: 12, color: "#5C5F63", marginLeft: "auto" }}>{totalAdjustments > 0 ? `${totalAdjustments} session${totalAdjustments > 1 ? "s" : ""} auto-adjusted below` : "Plan matches your current form \u2014 no adjustments needed"}</span>
+      </div>)}
+      <div className="hub-card" style={{ padding: "14px 16px", marginBottom: 18 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <div className="hub-display" style={{ fontWeight: 600, fontSize: 14, color: "#F4F2ED" }}>Training Gaps &mdash; {gaps.total} sessions planned to date</div>
+          <span className="hub-mono" style={{ fontSize: 15, fontWeight: 600, color: gaps.rate >= 85 ? "#3F9C8B" : gaps.rate >= 65 ? "#E8A33D" : "#C6432C" }}>{gaps.rate}% compliance</span>
+        </div>
+        <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap", fontSize: 12, color: "#8B8D91" }}>
+          <span><span className="hub-mono" style={{ color: "#3F9C8B" }}>{gaps.matched.length}</span> matched/bonus</span>
+          <span><span className="hub-mono" style={{ color: "#E0692F" }}>{gaps.exceeded.length}</span> exceeded</span>
+          <span><span className="hub-mono" style={{ color: "#E8A33D" }}>{gaps.partial.length}</span> partial</span>
+          <span><span className="hub-mono" style={{ color: "#C6432C" }}>{gaps.missed.length}</span> missed</span>
+          {gaps.skipped.length > 0 && <span><span className="hub-mono" style={{ color: "#8B8D91" }}>{gaps.skipped.length}</span> skipped on purpose</span>}
+        </div>
+        {gaps.hardMissed.length > 0 && (<div style={{ fontSize: 12, color: "#E0692F", marginTop: 8 }}>{gaps.hardMissed.length} missed hard session{gaps.hardMissed.length > 1 ? "s" : ""} ({gaps.hardMissed.map((x) => x.day.t).join(", ")}) &mdash; worth fitting one back in soon if form allows.</div>)}
+      </div>
+      <div style={{ marginBottom: 4, fontSize: 12, color: "#8B8D91" }}>Select a week</div>
+      <div className="hub-weekgrid" style={{ marginBottom: 18 }}>{WEEKS.map((w, i) => !inRange(i) ? null : (<button key={i} className={`hub-weektab ${week === i ? "active" : ""}`} onClick={() => setWeek(i)} style={{ position: "relative" }}>{i === CURRENT_WEEK_INDEX && <span style={{ position: "absolute", top: 4, right: 6, width: 5, height: 5, borderRadius: "50%", background: week === i ? "#15171A" : "#3F9C8B" }} />}<div>W{i + 1}</div><div style={{ fontSize: 10, opacity: 0.8 }}>{weeklyHours[i]}h</div></button>))}</div>
+      <div style={{ fontSize: 11, color: "#5C5F63", marginBottom: 18 }}>{mode === "training" ? "Showing the current week by default \u2014 green dot marks it." : "Completed block \u2014 kept here to look back on."}</div>
+      <div className="hub-card" style={{ padding: 18 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+          <div><div className="hub-display" style={{ fontWeight: 600, fontSize: 16, color: "#F4F2ED" }}>Week {week + 1} &mdash; {WEEKS[week].theme}</div><div style={{ fontSize: 12, color: "#8B8D91" }}>{dateFor(week, 0)} &ndash; {dateFor(week, 6)}</div></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div className="hub-mono" style={{ fontSize: 13, color: "#E8A33D" }}>{weeklyHours[week]} hrs riding{WEEKS[week].days.some((d) => d.gym) ? ` \u00b7 ${WEEKS[week].days.filter((d) => d.gym).length} gym` : ""}</div>
+            <button className="hub-navbtn" style={{ padding: "5px 10px", fontSize: 11 }} onClick={() => {
+              const exportable = adaptivePlan[week].filter((x) => !x.completed && x.day.d > 0 && x.day.z !== "Race");
+              const files = [];
+              exportable.forEach((x) => {
+                const label = `W${week + 1} \u2014 ${x.day.t}`;
+                const workout = generateWorkout(x.day);
+                if (workout) files.push({ name: `${x.dateKey}-${slugify(label)}.zwo`, content: toZwoXml(x.day, workout, label) });
+              });
+              if (files.length > 0) downloadFile(`week-${week + 1}-workouts.zip`, makeZip(files), "application/zip");
+            }}>{ICON.refresh} Export week (.zip of .zwo)</button>
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {adaptivePlan[week].map((x, i) => {
+            const verdictStyle = { matched: { label: "MATCHED", bg: "#3F9C8B" }, bonus: { label: "BONUS RIDE", bg: "#4A6FA5" }, exceeded: { label: "EXCEEDED", bg: "#E0692F" }, skipped: { label: "SKIPPED", bg: "#8B8D91" }, partial: { label: "PARTIAL", bg: "#E8A33D" }, missed: { label: "MISSED", bg: "#C6432C" }, rest: null };
+            const v = x.completed ? verdictStyle[x.compliance.verdict] : null;
+            let actualLine = null;
+            if (x.completed) {
+              if (x.compliance.verdict === "rest") actualLine = "Rest day, as planned.";
+              else if (x.compliance.verdict === "skipped") actualLine = `Skipped on purpose \u2014 ${SKIPPED_DAYS[x.dateKey]}. Not counted against compliance.`;
+              else if (x.compliance.rides.length === 0) actualLine = `No ride logged \u2014 planned ${x.day.t.toLowerCase()} (${x.day.d}min) was skipped.`;
+              else {
+                const names = x.compliance.rides.map((r) => r.name).join(" + ");
+                const pwr = x.compliance.rides.map((r) => POWER_HR_MAP[r.date]).find(Boolean);
+                const ratio = x.day.d > 0 ? (x.compliance.actualMin / x.day.d) : 0;
+                const overNote = x.compliance.verdict === "exceeded" ? ` \u2014 ${ratio.toFixed(1)}x the planned length, not really the same session` : "";
+                actualLine = `${names} \u2014 ${x.compliance.actualMin}min${x.day.d > 0 ? ` vs ${x.day.d}min planned` : ""}${pwr ? `, ${pwr.watts}W avg / ${pwr.hr}bpm avg` : ""}.${overNote}`;
+              }
+            }
+            const clickable = x.day.d > 0 && x.day.z !== "Race" && !x.skipped;
+            return (
+              <div key={i} onClick={clickable ? () => setOpenDay({ day: x.day, weekLabel: `Week ${week + 1}` }) : undefined} style={{ display: "flex", gap: 12, alignItems: "flex-start", background: "#15171A", border: x.adjust ? "1px solid #E8A33D" : v ? `1px solid ${v.bg}` : x.completed ? "1px solid #3F9C8B" : "1px solid #2A2E33", opacity: x.completed ? 0.85 : 1, borderRadius: 8, padding: "10px 12px", cursor: clickable ? "pointer" : "default" }}>
+                <div style={{ width: 76, flexShrink: 0 }}><div className="hub-mono" style={{ fontSize: 11, color: "#8B8D91" }}>{dateFor(week, i)}</div><div className="hub-mono" style={{ fontSize: 10, color: "#5C5F63", marginTop: 2 }}>{x.completed ? "actual" : "form"} {x.tsbBefore > 0 ? "+" : ""}{x.tsbBefore}</div><div className="hub-mono" style={{ fontSize: 10, color: "#5C5F63", marginTop: 1 }} title="Fitness (CTL) and Fatigue (ATL) at the start of this day">fitness {Math.round(x.fit)}</div><div className="hub-mono" style={{ fontSize: 10, color: "#5C5F63", marginTop: 1 }}>fatigue {Math.round(x.fat)}</div></div>
+                <div style={{ width: 6, alignSelf: "stretch", borderRadius: 3, background: ZONE_COLOR[x.day.z], flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                    <span className="hub-display" style={{ fontWeight: 600, fontSize: 13, color: "#F4F2ED" }}>{x.day.t}{v && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, color: "#15171A", background: v.bg, padding: "2px 6px", borderRadius: 4 }}>{v.label}</span>}{x.adjust && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, color: "#15171A", background: "#E8A33D", padding: "2px 6px", borderRadius: 4 }}>{ADJUST_LABEL[x.adjust]}</span>}</span>
+                    <span className="hub-mono" style={{ fontSize: 11, color: "#8B8D91" }}>{x.day.d > 0 ? `${x.day.d}min \u00b7 ${x.day.z}` : "\u2014"}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: "#8B8D91", marginTop: 3, lineHeight: 1.4 }}>{x.completed ? actualLine : x.day.desc}</div>
+                  {x.day.gym && <div style={{ marginTop: 6, padding: "6px 8px", border: "1px solid #3F9C8B", borderRadius: 6, background: "#15171A" }}><div style={{ fontSize: 11, fontWeight: 700, color: "#3F9C8B" }}>GYM &middot; noon &middot; {x.day.gym.d} min &mdash; {x.day.gym.t}</div><div style={{ fontSize: 11, color: "#8B8D91", marginTop: 2, lineHeight: 1.4 }}>{x.day.gym.desc}</div></div>}
+                  {clickable && <div style={{ fontSize: 10, color: "#5C5F63", marginTop: 4 }}>Tap for detailed intervals &amp; .zwo export &rarr;</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 20, fontSize: 11, color: "#5C5F63" }}><span>{ICON.trend}</span><span>Sessions are adjusted two ways: the day right after a real ride reacts directly to how that ride compared to plan (much longer eases the next day, a missed hard session can add intensity back if you're fresh enough), and every day beyond that is projected against the aggregate Fitness/Fatigue trend. Re-run "refresh my dashboard" periodically so this reflects real form. Sundays stay free (family day) except where a race falls on one (Stage 4, Oct 18; the crit, Nov 8) &mdash; both fixed by their events. Back-to-back blocks land Fri&ndash;Sat instead of Sat&ndash;Sun.</span></div>
+      {openDay && <WorkoutModal day={openDay.day} weekLabel={openDay.weekLabel} ftp={ftp} setFtp={setFtp} onClose={() => setOpenDay(null)} />}
+    </div>
+  );
+}
+
+/* ============ APP ============ */
+function App() {
+  const [page, setPage] = useState("home");
+  const [showRefresh, setShowRefresh] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (window.storage) {
+        window.storage.get("last-page", false).then((r) => { if (r && r.value && ["home", "dashboard", "plan", "archive", "c2c-plan", "crit-plan", "c2c-strategy", "crit-strategy"].includes(r.value)) setPage(r.value); }).catch(() => {});
+      }
+    } catch (e) {}
+  }, []);
+
+  function goTo(p) {
+    setPage(p);
+    try { if (window.storage) window.storage.set("last-page", p, false).catch(() => {}); } catch (e) {}
+  }
+
+  return (
+    <div style={{ background: "#15171A", minHeight: "100vh", fontFamily: "Inter, sans-serif", color: "#E8E6E1" }}>
+      <div style={{ maxWidth: 920, margin: "0 auto", padding: "28px 20px 48px" }}>
+        {page === "home" && <Home goTo={goTo} />}
+        {page === "dashboard" && <DashboardView goHome={() => goTo("home")} openRefresh={() => setShowRefresh(true)} />}
+        {page === "plan" && <PlanView goHome={() => goTo("home")} openRefresh={() => setShowRefresh(true)} />}
+        {page === "archive" && <ArchiveView goTo={goTo} goHome={() => goTo("home")} openRefresh={() => setShowRefresh(true)} />}
+        {page === "c2c-plan" && <PlanView mode="c2c" goHome={() => goTo("archive")} openRefresh={() => setShowRefresh(true)} />}
+        {page === "crit-plan" && <PlanView mode="crit" goHome={() => goTo("archive")} openRefresh={() => setShowRefresh(true)} />}
+        {page === "c2c-strategy" && <C2CStrategyView goHome={() => goTo("archive")} openRefresh={() => setShowRefresh(true)} />}
+        {page === "crit-strategy" && <CritStrategyView goHome={() => goTo("archive")} openRefresh={() => setShowRefresh(true)} />}
+      </div>
+      {showRefresh && <RefreshNote onClose={() => setShowRefresh(false)} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
